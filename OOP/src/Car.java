@@ -1,4 +1,5 @@
 import java.time.Year;
+import java.util.Objects;
 
 public class Car {
     private final int carId;
@@ -94,5 +95,26 @@ public class Car {
                 ", price: " + price +
                 ", type: " + type +
                 '}';
+    }
+
+    public String shortVersion() {
+        return "Car {" +
+                "carId: " + carId +
+                ", brand: " + brand +
+                ", model: " + model +
+                '}';
+    }
+
+    @Override
+    public boolean equals(Object o) {
+        if (this == o) return true;
+        if (o == null || getClass() != o.getClass()) return false;
+        Car car = (Car) o;
+        return carId == car.carId &&
+                Objects.equals(brand, car.brand) &&
+                Objects.equals(model, car.model) &&
+                year == car.year &&
+                price == car.price &&
+                Objects.equals(type, car.type);
     }
 }
