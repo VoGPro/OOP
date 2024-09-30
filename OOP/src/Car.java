@@ -9,20 +9,16 @@ public class Car {
     private final double price;
     private final String type;
 
-    private Car(int carId, String brand, String model, int year, double price, String type) {
+    public Car(int carId, String brand, String model, int year, double price, String type) {
+        validateCarId(carId);
+        validateYear(year);
+        validatePrice(price);
         this.carId = carId;
         this.brand = brand;
         this.model = model;
         this.year = year;
         this.price = price;
         this.type = type;
-    }
-
-    public static Car createCar(int carId, String brand, String model, int year, double price, String type) {
-        validateCarId(carId);
-        validateYear(year);
-        validatePrice(price);
-        return new Car(carId, brand, model, year, price, type);
     }
 
     public static Car createFromString(String carString) {
@@ -37,7 +33,7 @@ public class Car {
             int year = Integer.parseInt(parts[3].trim());
             double price = Double.parseDouble(parts[4].trim());
             String type = parts[5].trim();
-            return createCar(carId, brand, model, year, price, type);
+            return new Car(carId, brand, model, year, price, type);
         } catch (NumberFormatException e) {
             throw new IllegalArgumentException("Неверный формат данных в строке", e);
         }
