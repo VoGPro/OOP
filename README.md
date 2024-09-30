@@ -18,7 +18,7 @@ erDiagram
         int car_id PK
         string brand
         string model
-        date year
+        int year
         decimal price
         string type
     }
@@ -59,3 +59,47 @@ erDiagram
 
 ## Выбранная сущность для дальнейшей работы
 **Таблица CAR - Автомобиль**
+
+## Диаграмма классов
+```mermaid
+classDiagram
+    class ICar {
+        <<interface>>
+        +getCarId() int
+        +getBrand() String
+        +getModel() String
+    }
+
+    class BriefCar {
+        -int carId
+        -String brand
+        -String model
+        +BriefCar(int, String, String)
+        +static createFromString(String) BriefCar
+        +static validateCarId(int)
+        +getCarId() int
+        +getBrand() String
+        +getModel() String
+        +toString() String
+        +equals(Object) boolean
+    }
+
+    class Car {
+        -int year
+        -double price
+        -String type
+        +Car(int, String, String, int, double, String)
+        +static createFromString(String) Car
+        +static validateYear(int)
+        +static validatePrice(double)
+        +getInitials() String
+        +getYear() int
+        +getPrice() double
+        +getType() String
+        +toString() String
+        +equals(Object) boolean
+}
+
+    ICar <|.. BriefCar : implements
+    BriefCar <|-- Car : extends
+```
