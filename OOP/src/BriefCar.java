@@ -1,10 +1,10 @@
 import java.time.Year;
 import java.util.Objects;
 
-public class BriefCar {
-    private final int carId;
-    private final String brand;
-    private final String model;
+public class BriefCar implements ICar {
+    protected final int carId;
+    protected final String brand;
+    protected final String model;
 
     public BriefCar(int carId, String brand, String model) {
         validateCarId(carId);

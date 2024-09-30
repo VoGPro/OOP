@@ -1,21 +1,15 @@
 import java.time.Year;
 import java.util.Objects;
 
-public class Car {
-    private final int carId;
-    private final String brand;
-    private final String model;
+public class Car extends BriefCar {
     private final int year;
     private final double price;
     private final String type;
 
     public Car(int carId, String brand, String model, int year, double price, String type) {
-        validateCarId(carId);
+        super(carId, brand, model);
         validateYear(year);
         validatePrice(price);
-        this.carId = carId;
-        this.brand = brand;
-        this.model = model;
         this.year = year;
         this.price = price;
         this.type = type;
@@ -39,12 +33,6 @@ public class Car {
         }
     }
 
-    private static void validateCarId(int carId) {
-        if (carId <= 0) {
-            throw new IllegalArgumentException("ID должно быть целым положительным числом");
-        }
-    }
-
     private static void validateYear(int year) {
         if (year < 1886 || year > Year.now().getValue()) {
             throw new IllegalArgumentException("Год выпуска автомобиля не может быть " + year);
@@ -55,18 +43,6 @@ public class Car {
         if (price <= 0) {
             throw new IllegalArgumentException("Цена не может быть меньше или равна нулю");
         }
-    }
-
-    public int getCarId() {
-        return carId;
-    }
-
-    public String getBrand() {
-        return brand;
-    }
-
-    public String getModel() {
-        return model;
     }
 
     public int getYear() {
@@ -90,14 +66,6 @@ public class Car {
                 ", year: " + year +
                 ", price: " + price +
                 ", type: " + type +
-                '}';
-    }
-
-    public String shortVersion() {
-        return "Car {" +
-                "carId: " + carId +
-                ", brand: " + brand +
-                ", model: " + model +
                 '}';
     }
 
