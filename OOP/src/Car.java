@@ -8,16 +8,38 @@ public class Car {
     private final double price;
     private final String type;
 
-    public Car(int carId, String brand, String model, int year, double price, String type) {
-        validateCarId(carId);
-        validateYear(year);
-        validatePrice(price);
+    private Car(int carId, String brand, String model, int year, double price, String type) {
         this.carId = carId;
         this.brand = brand;
         this.model = model;
         this.year = year;
         this.price = price;
         this.type = type;
+    }
+
+    public static Car createCar(int carId, String brand, String model, int year, double price, String type) {
+        validateCarId(carId);
+        validateYear(year);
+        validatePrice(price);
+        return new Car(carId, brand, model, year, price, type);
+    }
+
+    public static Car createFromString(String carString) {
+        String[] parts = carString.split(",");
+        if (parts.length != 6) {
+            throw new IllegalArgumentException("Неверный тип данных. Ожидается строка, разделённая 6 запятыми.");
+        }
+        try {
+            int carId = Integer.parseInt(parts[0].trim());
+            String brand = parts[1].trim();
+            String model = parts[2].trim();
+            int year = Integer.parseInt(parts[3].trim());
+            double price = Double.parseDouble(parts[4].trim());
+            String type = parts[5].trim();
+            return createCar(carId, brand, model, year, price, type);
+        } catch (NumberFormatException e) {
+            throw new IllegalArgumentException("Неверный формат данных в строке", e);
+        }
     }
 
     private static void validateCarId(int carId) {
