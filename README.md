@@ -16,6 +16,7 @@ erDiagram
 
     CAR {
         int car_id PK
+        string vin
         string brand
         string model
         int year
@@ -43,6 +44,7 @@ erDiagram
 
 2. **CAR (Автомобиль)**:
    - car_id: уникальный идентификатор автомобиля (первичный ключ)
+   - vin: серийный номер автомобиля
    - brand: марка автомобиля
    - model: модель автомобиля
    - year: год выпуска автомобиля
@@ -63,12 +65,6 @@ erDiagram
 ## Диаграмма классов
 ```mermaid
 classDiagram
-    class ICar {
-        <<interface>>
-        +getCarId() int
-        +getBrand() String
-        +getModel() String
-    }
 
     class BriefCar {
         -int carId
@@ -100,6 +96,14 @@ classDiagram
         +equals(Object) boolean
 }
 
-    ICar <|.. BriefCar : implements
+    class CarValidator {
+        +static validateCarId(int)
+        +static validateVin(String)
+        +static validateYear(int)
+        +static validatePrice(double)
+    }
+
     BriefCar <|-- Car : extends
+    BriefCar ..> CarValidator : uses
+    Car ..> CarValidator : uses
 ```
