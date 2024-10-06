@@ -68,6 +68,7 @@ classDiagram
 
     class BriefCar {
         -int carId
+        -String vin
         -String brand
         -String model
         +BriefCar(int, String, String)
