@@ -8,7 +8,7 @@ public class CarValidator {
     }
 
     public static void validateVin(String vin) {
-        if (vin.length() != 17 || !vin.matches("[A-Za-z0-9]+")) {
+        if (vin.length() != 17 || !vin.matches("[A-Z0-9]+")) {
             throw new IllegalArgumentException("VIN номер должен быть длиной в 17 символов и содержать только латинские буквы и цифры");
         }
     }

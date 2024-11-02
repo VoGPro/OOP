@@ -17,7 +17,7 @@ public class BriefCar {
     }
 
     public void setVin(String vin) {
-        CarValidator.validateVin(vin);
+        CarValidator.validateVin(vin.toUpperCase());
         this.vin = vin.toUpperCase();
     }
 
@@ -57,7 +57,13 @@ public class BriefCar {
 
     @Override
     public boolean equals(Object obj) {
+        if (obj == this) return true;
         if (!(obj instanceof BriefCar car)) return false;
         return this.vin.equals(car.vin);
+    }
+
+    @Override
+    public int hashCode() {
+        return vin.hashCode();
     }
 }
