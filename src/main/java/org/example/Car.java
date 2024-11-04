@@ -5,8 +5,8 @@ public class Car extends BriefCar {
     private double price;
     private String type;
 
-    public Car(int carId, String vin, String brand, String model, int year, double price, String type) {
-        super(carId, vin, brand, model);
+    public Car(int car_id, String vin, String brand, String model, int year, double price, String type) {
+        super(car_id, vin, brand, model);
         setYear(year);
         setPrice(price);
         setType(type);
@@ -18,14 +18,14 @@ public class Car extends BriefCar {
             throw new IllegalArgumentException("Неверный тип данных. Ожидается строка, разделённая 7 запятыми.");
         }
         try {
-            int carId = Integer.parseInt(parts[0].trim());
+            int car_id = Integer.parseInt(parts[0].trim());
             String vin = parts[1].trim();
             String brand = parts[2].trim();
             String model = parts[3].trim();
             int year = Integer.parseInt(parts[4].trim());
             double price = Double.parseDouble(parts[5].trim());
             String type = parts[6].trim();
-            return new Car(carId, vin, brand, model, year, price, type);
+            return new Car(car_id, vin, brand, model, year, price, type);
         } catch (NumberFormatException e) {
             throw new IllegalArgumentException("Неверный формат данных в строке", e);
         }
@@ -60,7 +60,7 @@ public class Car extends BriefCar {
     @Override
     public String toString() {
         return "Car {" +
-                "carId: " + carId +
+                "car_id: " + car_id +
                 ", brand: " + brand +
                 ", model: " + model +
                 ", year: " + year +

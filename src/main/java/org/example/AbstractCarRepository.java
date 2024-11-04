@@ -20,11 +20,11 @@ public abstract class AbstractCarRepository {
 
     protected abstract void saveToFile();
 
-    public Car getById(int carId) {
+    public Car getById(int car_id) {
         return cars.stream()
-                .filter(car -> car.getCarId() == carId)
+                .filter(car -> car.getCarId() == car_id)
                 .findFirst()
-                .orElseThrow(() -> new IllegalArgumentException("Автомобиль с ID " + carId + " не найден"));
+                .orElseThrow(() -> new IllegalArgumentException("Автомобиль с ID " + car_id + " не найден"));
     }
 
     public List<Car> get_k_n_short_list(int k, int n, String sortField) {
@@ -33,7 +33,7 @@ public abstract class AbstractCarRepository {
         }
 
         Comparator<Car> comparator = switch (sortField.toLowerCase()) {
-            case "carid" -> Comparator.comparingInt(Car::getCarId);
+            case "car_id" -> Comparator.comparingInt(Car::getCarId);
             case "brand" -> Comparator.comparing(Car::getBrand);
             case "model" -> Comparator.comparing(Car::getModel);
             case "year" -> Comparator.comparingInt(Car::getYear);
@@ -80,13 +80,13 @@ public abstract class AbstractCarRepository {
         }
     }
 
-    public void delete(int carId) {
-        int index = findIndexById(carId);
+    public void delete(int car_id) {
+        int index = findIndexById(car_id);
         if (index != -1) {
             cars.remove(index);
             saveToFile();
         } else {
-            throw new IllegalArgumentException("Автомобиль с ID " + carId + " не найден");
+            throw new IllegalArgumentException("Автомобиль с ID " + car_id + " не найден");
         }
     }
 
@@ -94,9 +94,9 @@ public abstract class AbstractCarRepository {
         return cars.size();
     }
 
-    protected int findIndexById(int carId) {
+    protected int findIndexById(int car_id) {
         for (int i = 0; i < cars.size(); i++) {
-            if (cars.get(i).getCarId() == carId) {
+            if (cars.get(i).getCarId() == car_id) {
                 return i;
             }
         }

@@ -3,8 +3,8 @@ package org.example;
 import java.time.Year;
 
 public class CarValidator {
-    public static void validateCarId(int carId) {
-        if (carId < 0) {
+    public static void validateCarId(int car_id) {
+        if (car_id < 0) {
             throw new IllegalArgumentException("ID должно быть целым положительным числом или нулём");
         }
     }

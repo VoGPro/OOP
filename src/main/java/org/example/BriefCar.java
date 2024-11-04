@@ -1,21 +1,21 @@
 package org.example;
 
 public class BriefCar {
-    protected int carId;
+    protected int car_id;
     protected String vin;
     protected String brand;
     protected String model;
 
-    public BriefCar(int carId, String vin, String brand, String model) {
-        setCarId(carId);
+    public BriefCar(int car_id, String vin, String brand, String model) {
+        setCarId(car_id);
         setVin(vin);
         setBrand(brand);
         setModel(model);
     }
 
-    public void setCarId(int carId) {
-        CarValidator.validateCarId(carId);
-        this.carId = carId;
+    public void setCarId(int car_id) {
+        CarValidator.validateCarId(car_id);
+        this.car_id = car_id;
     }
 
     public void setVin(String vin) {
@@ -32,7 +32,7 @@ public class BriefCar {
     }
 
     public int getCarId() {
-        return carId;
+        return car_id;
     }
 
     public String getVin() {
@@ -50,7 +50,7 @@ public class BriefCar {
     @Override
     public String toString() {
         return "Car {" +
-                "carId: " + carId +
+                "car_id: " + car_id +
                 ", vin: " + vin +
                 ", brand: " + brand +
                 ", model: " + model +

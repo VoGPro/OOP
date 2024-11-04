@@ -5,57 +5,45 @@ import java.util.ArrayList;
 import java.util.List;
 
 public class Car_rep_DB {
-    private final String url;
-    private final String username;
-    private final String password;
+    private DbConfig dbConfig;
 
-    public Car_rep_DB(String url, String username, String password) {
-        this.url = url;
-        this.username = username;
-        this.password = password;
+    public Car_rep_DB() {
+        this.dbConfig = dbConfig.getInstance();
     }
 
-    // Получение объекта по CarId
-    public Car getById(int carId) {
+    public Car getById(int car_id) {
         String sql = "SELECT * FROM cars WHERE car_id = ?";
 
-        try (Connection conn = getConnection();
+        try (Connection conn = dbConfig.getConnection();
              PreparedStatement stmt = conn.prepareStatement(sql)) {
 
-            stmt.setInt(1, carId);
+            stmt.setInt(1, car_id);
             ResultSet rs = stmt.executeQuery();
 
             if (rs.next()) {
                 return extractCarFromResultSet(rs);
             } else {
-                throw new IllegalArgumentException("Автомобиль с ID " + carId + " не найден");
+                throw new IllegalArgumentException("Автомобиль с ID " + car_id + " не найден");
             }
         } catch (SQLException e) {
             throw new RuntimeException("Ошибка при получении автомобиля", e);
         }
     }
 
-    // Получение отсортированного подсписка
     public List<Car> get_k_n_short_list(int k, int n, String sortField) {
         if (k < 0 || n <= 0) {
             throw new IllegalArgumentException("k и n должны быть положительными числами");
         }
 
-        // Преобразование имени поля из camelCase в snake_case для SQL
-        String dbSortField = switch (sortField.toLowerCase()) {
-            case "carid" -> "car_id";
-            case "vin" -> "vin";
-            case "brand" -> "brand";
-            case "model" -> "model";
-            case "year" -> "year";
-            case "price" -> "price";
-            case "type" -> "type";
-            default -> throw new IllegalArgumentException("Неверное поле для сортировки: " + sortField);
-        };
+        sortField = sortField.toLowerCase();
+        List<String> carFields = List.of("car_id", "vin", "brand", "model", "year", "price", "type");
+        if (!carFields.contains(sortField)) {
+            throw new IllegalArgumentException("Неверное поле для сортировки: " + sortField);
+        }
 
-        String sql = "SELECT * FROM cars ORDER BY " + dbSortField + " LIMIT ? OFFSET ?";
+        String sql = "SELECT * FROM cars ORDER BY " + sortField + " LIMIT ? OFFSET ?";
 
-        try (Connection conn = getConnection();
+        try (Connection conn = dbConfig.getConnection();
              PreparedStatement stmt = conn.prepareStatement(sql)) {
 
             stmt.setInt(1, n);
@@ -72,7 +60,6 @@ public class Car_rep_DB {
         }
     }
 
-    // Добавление нового объекта
     public void add(Car car) {
         String sql = """
             INSERT INTO cars (vin, brand, model, year, price, type)
@@ -80,7 +67,7 @@ public class Car_rep_DB {
             RETURNING car_id
             """;
 
-        try (Connection conn = getConnection();
+        try (Connection conn = dbConfig.getConnection();
              PreparedStatement stmt = conn.prepareStatement(sql)) {
 
             stmt.setString(1, car.getVin().toUpperCase());
@@ -96,7 +83,6 @@ public class Car_rep_DB {
         }
     }
 
-    // Обновление существующего объекта
     public void update(Car car) {
         String sql = """
             UPDATE cars
@@ -104,7 +90,7 @@ public class Car_rep_DB {
             WHERE car_id = ?
             """;
 
-        try (Connection conn = getConnection();
+        try (Connection conn = dbConfig.getConnection();
              PreparedStatement stmt = conn.prepareStatement(sql)) {
 
             stmt.setString(1, car.getVin().toUpperCase());
@@ -124,29 +110,27 @@ public class Car_rep_DB {
         }
     }
 
-    // Удаление объекта
-    public void delete(int carId) {
+    public void delete(int car_id) {
         String sql = "DELETE FROM cars WHERE car_id = ?";
 
-        try (Connection conn = getConnection();
+        try (Connection conn = dbConfig.getConnection();
              PreparedStatement stmt = conn.prepareStatement(sql)) {
 
-            stmt.setInt(1, carId);
+            stmt.setInt(1, car_id);
             int rowsAffected = stmt.executeUpdate();
 
             if (rowsAffected == 0) {
-                throw new IllegalArgumentException("Автомобиль с ID " + carId + " не найден");
+                throw new IllegalArgumentException("Автомобиль с ID " + car_id + " не найден");
             }
         } catch (SQLException e) {
             throw new RuntimeException("Ошибка при удалении автомобиля", e);
         }
     }
 
-    // Получение количества элементов
     public int get_count() {
         String sql = "SELECT COUNT(*) FROM cars";
 
-        try (Connection conn = getConnection();
+        try (Connection conn = dbConfig.getConnection();
              Statement stmt = conn.createStatement();
              ResultSet rs = stmt.executeQuery(sql)) {
 
@@ -159,12 +143,6 @@ public class Car_rep_DB {
         }
     }
 
-    // Вспомогательный метод для создания подключения
-    private Connection getConnection() throws SQLException {
-        return DriverManager.getConnection(url, username, password);
-    }
-
-    // Вспомогательный метод для извлечения объекта Car из ResultSet
     private Car extractCarFromResultSet(ResultSet rs) throws SQLException {
         return new Car(
                 rs.getInt("car_id"),

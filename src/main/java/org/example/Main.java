@@ -4,12 +4,7 @@ import java.util.List;
 
 public class Main {
     public static void main(String[] args) {
-        DbConfig dbConfig = new DbConfig();
-        Car_rep_DB repository = new Car_rep_DB(
-                dbConfig.getUrl(),
-                dbConfig.getUser(),
-                dbConfig.getPassword()
-        );
+        Car_rep_DB repository = new Car_rep_DB();
 
         // 1. Добавление новых автомобилей
         Car car0 = new Car(0, "1hgbh41jxmn109186", "Nissan", "R34", 2002, 35209.4, "Sport");
