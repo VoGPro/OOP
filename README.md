@@ -66,6 +66,35 @@ erDiagram
 ```mermaid
 classDiagram
 
+    class AbstractCarRepository {
+        #List<Car> cars
+        #String filePath
+        #ObjectMapper objectMapper
+        #AbstractCarRepository(String, ObjectMapper)
+        #abstract loadFromFile()
+        #abstract saveToFile()
+        +getById(int) Car
+        +get_k_n_short_list(int, int, String) List~Car~
+        +add(Car)
+        +update(Car)
+        +delete(int)
+        +get_count() int
+        #generateNewCarId() int
+        #findIndexById(int) int
+    }
+
+    class Car_rep_json {
+        +Car_rep_json(String)
+        #loadFromFile()
+        #saveToFile()
+    }
+
+    class Car_rep_yaml {
+        +Car_rep_yaml(String)
+        #loadFromFile()
+        #saveToFile()
+    }
+
     class BriefCar {
         -int carId
         -String vin
@@ -95,7 +124,7 @@ classDiagram
         +getType() String
         +toString() String
         +equals(Object) boolean
-}
+    }
 
     class CarValidator {
         +static validateCarId(int)
@@ -107,4 +136,7 @@ classDiagram
     BriefCar <|-- Car : extends
     BriefCar ..> CarValidator : uses
     Car ..> CarValidator : uses
+    AbstractCarRepository <|-- Car_rep_json : extends
+    AbstractCarRepository <|-- Car_rep_yaml : extends
+    AbstractCarRepository o-- Car : contains
 ```
