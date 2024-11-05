@@ -4,7 +4,7 @@ import com.fasterxml.jackson.databind.ObjectMapper;
 import java.util.*;
 import java.util.stream.Collectors;
 
-public abstract class AbstractCarRepository {
+public abstract class AbstractCarRepository implements ICarStrategy {
     protected List<Car> cars;
     protected final String filePath;
     protected final ObjectMapper objectMapper;

@@ -1,10 +1,34 @@
 package org.example;
 
 import java.util.List;
+import java.util.Scanner;
 
 public class Main {
     public static void main(String[] args) {
-        Car_rep_DB repository = new Car_rep_DB();
+
+        Scanner in = new Scanner(System.in);
+        System.out.print("Работать с автомобилями в:\n" +
+                "1 - JSON файле\n" +
+                "2 - YAML файле\n" +
+                "3 - Базе данных\n" +
+                "Выбор: ");
+        int choice = in.nextInt();
+        in.close();
+
+        // Выбор стратегии
+        ICarStrategy repository;
+        switch(choice){
+            case 1:
+                repository = new Car_rep_json("cars.json");
+                break;
+            case 2:
+                repository = new Car_rep_yaml("cars.yaml");
+                break;
+            case 3:
+                repository = new Car_rep_DB();
+            default:
+                throw new IllegalArgumentException("Неверный ввод: " + choice);
+        }
 
         // 1. Добавление новых автомобилей
         Car car0 = new Car(0, "1hgbh41jxmn109186", "Nissan", "R34", 2002, 35209.4, "Sport");

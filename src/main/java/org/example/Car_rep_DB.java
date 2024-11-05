@@ -4,7 +4,7 @@ import java.sql.*;
 import java.util.ArrayList;
 import java.util.List;
 
-public class Car_rep_DB implements ICarRepository {
+public class Car_rep_DB implements ICarStrategy {
     private DbConfig dbConfig;
 
     public Car_rep_DB() {

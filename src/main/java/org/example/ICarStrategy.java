@@ -2,7 +2,7 @@ package org.example;
 
 import java.util.List;
 
-public interface ICarRepository {
+public interface ICarStrategy {
     Car getById(int car_id);
 
     List<Car> get_k_n_short_list(int k, int n, String sortField);
