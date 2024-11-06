@@ -62,12 +62,72 @@ erDiagram
 ## Выбранная сущность для дальнейшей работы
 **Таблица CAR - Автомобиль**
 
-## Диаграмма классов
+## Диаграмма классов автомобиля
 ```mermaid
 classDiagram
 
+    class BriefCar {
+        #int car_id
+        #String vin
+        #String brand
+        #String model
+        +BriefCar(int, String, String, String)
+        +setCarId(int)
+        +setVin(String)
+        +setBrand(String)
+        +setModel(String)
+        +getCarId() int
+        +getVin() String
+        +getBrand() String
+        +getModel() String
+        +toString() String
+        +equals(Object) boolean
+        +hashCode() int
+    }
+
+    class Car {
+        -int year
+        -double price
+        -String type
+        +Car(int, String, String, String, int, double, String)
+        +setYear(int)
+        +setPrice(double)
+        +setType(String)
+        +getYear() int
+        +getPrice() double
+        +getType() String
+        +toString() String
+        +static createFromString(String) Car
+    }
+
+    class CarValidator {
+        +static validateCarId(int)
+        +static validateVin(String)
+        +static validateYear(int)
+        +static validatePrice(double)
+    }
+
+    BriefCar <|-- Car : extends
+    BriefCar ..> CarValidator : uses
+    Car ..> CarValidator : uses
+```
+
+## Диаграмма классов БД и файлов
+```mermaid
+classDiagram
+
+    class ICarStrategy {
+        <<interface>>
+        +getById(int) Car
+        +get_k_n_short_list(int, int, String) List~Car~
+        +add(Car)
+        +update(Car)
+        +delete(int)
+        +get_count() int
+    }
+
     class AbstractCarRepository {
-        #List<Car> cars
+        #List~Car~ cars
         #String filePath
         #ObjectMapper objectMapper
         #AbstractCarRepository(String, ObjectMapper)
@@ -95,48 +155,30 @@ classDiagram
         #saveToFile()
     }
 
-    class BriefCar {
-        -int carId
-        -String vin
-        -String brand
-        -String model
-        +BriefCar(int, String, String)
-        +static createFromString(String) BriefCar
-        +static validateCarId(int)
-        +getCarId() int
-        +getBrand() String
-        +getModel() String
-        +toString() String
-        +equals(Object) boolean
+    class Car_rep_DB {
+        -DbConfig dbConfig
+        +Car_rep_DB()
+        +getById(int) Car
+        +get_k_n_short_list(int, int, String) List~Car~
+        +add(Car)
+        +update(Car)
+        +delete(int)
+        +get_count() int
+        -extractCarFromResultSet(ResultSet) Car
     }
 
-    class Car {
-        -int year
-        -double price
-        -String type
-        +Car(int, String, String, int, double, String)
-        +static createFromString(String) Car
-        +static validateYear(int)
-        +static validatePrice(double)
-        +getInitials() String
-        +getYear() int
-        +getPrice() double
-        +getType() String
-        +toString() String
-        +equals(Object) boolean
+    class DbConfig {
+        -static DbConfig instance
+        -static String CONFIG_FILE
+        -Properties properties
+        -DbConfig()
+        +static getInstance() DbConfig
+        +getConnection() Connection
     }
 
-    class CarValidator {
-        +static validateCarId(int)
-        +static validateVin(String)
-        +static validateYear(int)
-        +static validatePrice(double)
-    }
-
-    BriefCar <|-- Car : extends
-    BriefCar ..> CarValidator : uses
-    Car ..> CarValidator : uses
+    ICarStrategy <|.. AbstractCarRepository : implements
+    ICarStrategy <|.. Car_rep_DB : implements
     AbstractCarRepository <|-- Car_rep_json : extends
     AbstractCarRepository <|-- Car_rep_yaml : extends
-    AbstractCarRepository o-- Car : contains
+    Car_rep_DB --> DbConfig : uses
 ```
