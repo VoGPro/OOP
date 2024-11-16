@@ -115,70 +115,140 @@ classDiagram
 ## Диаграмма классов БД и файлов
 ```mermaid
 classDiagram
-
-    class ICarStrategy {
+    class ICarRepository {
         <<interface>>
-        +getById(int) Car
-        +get_k_n_short_list(int, int, String) List~Car~
-        +add(Car)
-        +update(Car)
-        +delete(int)
-        +get_count() int
+        +getById(car_id: int): Car
+        +get_k_n_short_list(k: int, n: int, filterCriteria: IFilterCriteria, sortField: String): List~Car~
+        +add(car: Car): void
+        +update(car: Car): void
+        +delete(car_id: int): void
+        +get_count(filterCriteria: IFilterCriteria): int
     }
 
-    class AbstractCarRepository {
-        #List~Car~ cars
-        #String filePath
-        #ObjectMapper objectMapper
-        #AbstractCarRepository(String, ObjectMapper)
-        #abstract loadFromFile()
-        #abstract saveToFile()
-        +getById(int) Car
-        +get_k_n_short_list(int, int, String) List~Car~
-        +add(Car)
-        +update(Car)
-        +delete(int)
-        +get_count() int
-        #generateNewCarId() int
-        #findIndexById(int) int
+    class CarFileRepository {
+        #cars: List~Car~
+        #filePath: String
+        #objectMapper: ObjectMapper
+        -loadFromFile(): void
+        -saveToFile(): void
+        +getById(car_id: int): Car
+        +get_k_n_short_list(k: int, n: int, filterCriteria: IFilterCriteria, sortField: String): List~Car~
+        +add(car: Car): void
+        +update(car: Car): void
+        +delete(car_id: int): void
+        +get_count(filterCriteria: IFilterCriteria): int
+        -generateNewCarId(): int
+        -findIndexById(car_id: int): int
     }
 
-    class Car_rep_json {
-        +Car_rep_json(String)
-        #loadFromFile()
-        #saveToFile()
+    class CarFileRepositoryAdapter {
+        -carFileRepository: CarFileRepository
+        +CarFileRepositoryAdapter(CarFileRepository)
+        +getById(car_id: int): Car
+        +get_k_n_short_list(k: int, n: int, filterCriteria: IFilterCriteria, sortField: String): List~Car~
+        +add(car: Car): void
+        +update(car: Car): void
+        +delete(car_id: int): void
+        +get_count(filterCriteria: IFilterCriteria): int
     }
 
-    class Car_rep_yaml {
-        +Car_rep_yaml(String)
-        #loadFromFile()
-        #saveToFile()
+    class IFileStrategy {
+        <<interface>>
+        +createObjectMapper(): ObjectMapper
     }
 
-    class Car_rep_DB {
-        -DbConfig dbConfig
-        +Car_rep_DB()
-        +getById(int) Car
-        +get_k_n_short_list(int, int, String) List~Car~
-        +add(Car)
-        +update(Car)
-        +delete(int)
-        +get_count() int
-        -extractCarFromResultSet(ResultSet) Car
+    class CarJsonRepository {
+        +createObjectMapper(): ObjectMapper
+    }
+
+    class CarYamlRepository {
+        +createObjectMapper(): ObjectMapper
+    }
+
+    class IFilterCriteria {
+        <<interface>>
+        +matches(car: Car): boolean
+    }
+
+    class FilterDecorator {
+        <<abstract>>
+        #component: IFilterCriteria
+        +FilterDecorator(IFilterCriteria)
+        +matches(car: Car): boolean
+    }
+
+    class BrandFilterDecorator {
+        -brand: String
+        +BrandFilterDecorator(IFilterCriteria)
+        +matches(car: Car): boolean
+        +getBrand(): String
+    }
+
+    class ModelFilterDecorator {
+        -model: String
+        +ModelFilterDecorator(IFilterCriteria)
+        +matches(car: Car): boolean
+        +getModel(): String
+    }
+
+    class YearFilterDecorator {
+        -year: int
+        +YearFilterDecorator(IFilterCriteria)
+        +matches(car: Car): boolean
+        +getYear(): int
+    }
+
+    class PriceRangeFilterDecorator {
+        -minPrice: double
+        -maxPrice: double
+        +PriceRangeFilterDecorator(IFilterCriteria)
+        +matches(car: Car): boolean
+        +getMinPrice(): double
+        +getMaxPrice(): double
+    }
+
+    class TypeFilterDecorator {
+        -type: String
+        +TypeFilterDecorator(IFilterCriteria)
+        +matches(car: Car): boolean
+        +getType(): String
+    }
+
+    class CarDbRepository {
+        -dbConfig: DbConfig
+        +CarDbRepository()
+        +getById(car_id: int): Car
+        +get_k_n_short_list(k: int, n: int, filterCriteria: IFilterCriteria, sortField: String): List~Car~
+        +add(car: Car): void
+        +update(car: Car): void
+        +delete(car_id: int): void
+        +get_count(filterCriteria: IFilterCriteria): int
+        -extractCarFromResultSet(rs: ResultSet): Car
     }
 
     class DbConfig {
-        -static DbConfig instance
-        -static String CONFIG_FILE
-        -Properties properties
+        -instance: DbConfig
+        -CONFIG_FILE: String
+        -properties: Properties
         -DbConfig()
-        +static getInstance() DbConfig
-        +getConnection() Connection
+        +getInstance(): DbConfig
+        +getConnection(): Connection
     }
 
-    ICarStrategy <|.. AbstractCarRepository : implements
-    ICarStrategy <|.. Car_rep_DB : implements
-    AbstractCarRepository <|-- Car_rep_json : extends
-    AbstractCarRepository <|-- Car_rep_yaml : extends
-    Car_rep_DB --> DbConfig : uses
+    ICarRepository <|.. CarDbRepository : implements
+    ICarRepository <|.. CarFileRepositoryAdapter : implements
+    CarFileRepositoryAdapter --> CarFileRepository : uses
+    CarFileRepository --> IFileStrategy : uses
+    IFileStrategy <|.. CarJsonRepository : implements
+    IFileStrategy <|.. CarYamlRepository : implements
+    CarDbRepository --> DbConfig : uses
+    CarDbRepository --> IFilterCriteria : uses
+    CarFileRepository --> IFilterCriteria : uses
+    
+    IFilterCriteria <|.. FilterDecorator : implements
+    FilterDecorator <|-- ModelFilterDecorator : extends
+    FilterDecorator <|-- PriceRangeFilterDecorator : extends
+    FilterDecorator <|-- TypeFilterDecorator : extends
+    FilterDecorator <|-- YearFilterDecorator : extends
+    FilterDecorator <|-- BrandFilterDecorator : extends
 ```
