@@ -4,10 +4,10 @@ import java.sql.*;
 import java.util.ArrayList;
 import java.util.List;
 
-public class Car_rep_DB implements ICarStrategy {
+public class CarDbRepository implements ICarRepository {
     private DbConfig dbConfig;
 
-    public Car_rep_DB() {
+    public CarDbRepository() {
         this.dbConfig = dbConfig.getInstance();
     }
 
@@ -30,34 +30,63 @@ public class Car_rep_DB implements ICarStrategy {
         }
     }
 
-    public List<Car> get_k_n_short_list(int k, int n, String sortField) {
+    @Override
+    public List<Car> get_k_n_short_list(int k, int n, IFilterCriteria filterCriteria, String sortField) {
         if (k < 0 || n <= 0) {
             throw new IllegalArgumentException("k и n должны быть положительными числами");
         }
 
-        sortField = sortField.toLowerCase();
-        List<String> carFields = List.of("car_id", "vin", "brand", "model", "year", "price", "type");
-        if (!carFields.contains(sortField)) {
-            throw new IllegalArgumentException("Неверное поле для сортировки: " + sortField);
+        StringBuilder sql = new StringBuilder("SELECT * FROM cars WHERE 1=1");
+        List<Object> params = new ArrayList<>();
+
+        if (filterCriteria instanceof YearFilterDecorator) {
+            sql.append(" AND year = ?");
+            params.add(((YearFilterDecorator) filterCriteria).getYear());
+        }
+        if (filterCriteria instanceof PriceRangeFilterDecorator) {
+            PriceRangeFilterDecorator priceFilter = (PriceRangeFilterDecorator) filterCriteria;
+            sql.append(" AND price >= ? AND price <= ?");
+            params.add(priceFilter.getMinPrice());
+            params.add(priceFilter.getMaxPrice());
+        }
+        if (filterCriteria instanceof BrandFilterDecorator) {
+            sql.append(" AND brand = ?");
+            params.add(((BrandFilterDecorator) filterCriteria).getBrand());
+        }
+        if (filterCriteria instanceof ModelFilterDecorator) {
+            sql.append(" AND model = ?");
+            params.add(((ModelFilterDecorator) filterCriteria).getModel());
+        }
+        if (filterCriteria instanceof TypeFilterDecorator) {
+            sql.append(" AND type = ?");
+            params.add(((TypeFilterDecorator) filterCriteria).getType());
         }
 
-        String sql = "SELECT * FROM cars ORDER BY " + sortField + " LIMIT ? OFFSET ?";
+        sql.append(" ORDER BY ").append(sortField);
+        sql.append(" LIMIT ? OFFSET ?");
+        params.add(n);
+        params.add(k * n);
 
+        List<Car> result = new ArrayList<>();
         try (Connection conn = dbConfig.getConnection();
-             PreparedStatement stmt = conn.prepareStatement(sql)) {
+             PreparedStatement pstmt = conn.prepareStatement(sql.toString())) {
 
-            stmt.setInt(1, n);
-            stmt.setInt(2, k * n);
-            ResultSet rs = stmt.executeQuery();
-
-            List<Car> cars = new ArrayList<>();
-            while (rs.next()) {
-                cars.add(extractCarFromResultSet(rs));
+            for (int i = 0; i < params.size(); i++) {
+                pstmt.setObject(i + 1, params.get(i));
             }
-            return cars;
+
+            try (ResultSet rs = pstmt.executeQuery()) {
+                while (rs.next()) {
+                    Car car = extractCarFromResultSet(rs);
+                    if (filterCriteria.matches(car)) {
+                        result.add(car);
+                    }
+                }
+            }
         } catch (SQLException e) {
             throw new RuntimeException("Ошибка при получении списка автомобилей", e);
         }
+        return result;
     }
 
     public void add(Car car) {
@@ -127,20 +156,38 @@ public class Car_rep_DB implements ICarStrategy {
         }
     }
 
-    public int get_count() {
-        String sql = "SELECT COUNT(*) FROM cars";
+    @Override
+    public int get_count(IFilterCriteria filterCriteria) {
+        StringBuilder sql = new StringBuilder("SELECT COUNT(*) FROM cars WHERE 1=1");
+        List<Object> params = new ArrayList<>();
+
+        // Добавляем условия фильтрации в SQL
+        if (filterCriteria instanceof YearFilterDecorator) {
+            sql.append(" AND year = ?");
+            params.add(((YearFilterDecorator) filterCriteria).getYear());
+        }
+        if (filterCriteria instanceof BrandFilterDecorator) {
+            sql.append(" AND LOWER(brand) = LOWER(?)");
+            params.add(((BrandFilterDecorator) filterCriteria).getBrand());
+        }
+        // ... добавьте другие условия фильтрации ...
 
         try (Connection conn = dbConfig.getConnection();
-             Statement stmt = conn.createStatement();
-             ResultSet rs = stmt.executeQuery(sql)) {
+             PreparedStatement pstmt = conn.prepareStatement(sql.toString())) {
 
-            if (rs.next()) {
-                return rs.getInt(1);
+            for (int i = 0; i < params.size(); i++) {
+                pstmt.setObject(i + 1, params.get(i));
             }
-            return 0;
+
+            try (ResultSet rs = pstmt.executeQuery()) {
+                if (rs.next()) {
+                    return rs.getInt(1);
+                }
+            }
         } catch (SQLException e) {
             throw new RuntimeException("Ошибка при подсчете количества автомобилей", e);
         }
+        return 0;
     }
 
     private Car extractCarFromResultSet(ResultSet rs) throws SQLException {
