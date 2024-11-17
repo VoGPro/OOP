@@ -11,16 +11,24 @@ public class CarView extends JFrame {
     private final JButton previousButton;
     private final JButton nextButton;
     private final JComboBox<String> sortComboBox;
-    private final JTextField brandFilterField;
-    private final JButton applyFilterButton;
     private final JLabel pageInfoLabel;
+
+    // Фильтры
+    private final JTextField brandFilterField;
+    private final JTextField modelFilterField;
+    private final JTextField typeFilterField;
+    private final JTextField yearFilterField;
+    private final JTextField minPriceField;
+    private final JTextField maxPriceField;
+    private final JButton applyFiltersButton;
+    private final JButton clearFiltersButton;
 
     public CarView() {
         setTitle("Car Management System");
         setDefaultCloseOperation(JFrame.EXIT_ON_CLOSE);
-        setSize(800, 600);
+        setSize(1000, 700);
 
-        // Create components
+        // Create basic components
         carTable = new JTable();
         addButton = new JButton("Add");
         editButton = new JButton("Edit");
@@ -32,34 +40,93 @@ public class CarView extends JFrame {
         String[] sortOptions = {"car_id", "brand", "model", "year", "price", "type"};
         sortComboBox = new JComboBox<>(sortOptions);
 
-        brandFilterField = new JTextField(15);
-        applyFilterButton = new JButton("Apply Filter");
+        // Initialize filter components
+        brandFilterField = new JTextField(10);
+        modelFilterField = new JTextField(10);
+        typeFilterField = new JTextField(10);
+        yearFilterField = new JTextField(10);
+        minPriceField = new JTextField(10);
+        maxPriceField = new JTextField(10);
+        applyFiltersButton = new JButton("Apply Filters");
+        clearFiltersButton = new JButton("Clear Filters");
 
         // Layout
-        JPanel controlPanel = new JPanel();
+        setLayout(new BorderLayout());
+
+        // Top control panel
+        JPanel controlPanel = new JPanel(new FlowLayout(FlowLayout.LEFT));
         controlPanel.add(addButton);
         controlPanel.add(editButton);
         controlPanel.add(deleteButton);
         controlPanel.add(new JLabel("Sort by:"));
         controlPanel.add(sortComboBox);
-        controlPanel.add(new JLabel("Brand filter:"));
-        controlPanel.add(brandFilterField);
-        controlPanel.add(applyFilterButton);
 
+        // Filter panel
+        JPanel filterPanel = new JPanel(new GridBagLayout());
+        filterPanel.setBorder(BorderFactory.createTitledBorder("Filters"));
+        GridBagConstraints gbc = new GridBagConstraints();
+        gbc.insets = new Insets(5, 5, 5, 5);
+        gbc.anchor = GridBagConstraints.WEST;
+
+        // Brand filter
+        gbc.gridx = 0; gbc.gridy = 0;
+        filterPanel.add(new JLabel("Brand:"), gbc);
+        gbc.gridx = 1;
+        filterPanel.add(brandFilterField, gbc);
+
+        // Model filter
+        gbc.gridx = 2;
+        filterPanel.add(new JLabel("Model:"), gbc);
+        gbc.gridx = 3;
+        filterPanel.add(modelFilterField, gbc);
+
+        // Type filter
+        gbc.gridx = 0; gbc.gridy = 1;
+        filterPanel.add(new JLabel("Type:"), gbc);
+        gbc.gridx = 1;
+        filterPanel.add(typeFilterField, gbc);
+
+        // Year filter
+        gbc.gridx = 2;
+        filterPanel.add(new JLabel("Year:"), gbc);
+        gbc.gridx = 3;
+        filterPanel.add(yearFilterField, gbc);
+
+        // Price range filter
+        gbc.gridx = 0; gbc.gridy = 2;
+        filterPanel.add(new JLabel("Min Price:"), gbc);
+        gbc.gridx = 1;
+        filterPanel.add(minPriceField, gbc);
+        gbc.gridx = 2;
+        filterPanel.add(new JLabel("Max Price:"), gbc);
+        gbc.gridx = 3;
+        filterPanel.add(maxPriceField, gbc);
+
+        // Filter buttons
+        JPanel filterButtonsPanel = new JPanel(new FlowLayout(FlowLayout.CENTER));
+        filterButtonsPanel.add(applyFiltersButton);
+        filterButtonsPanel.add(clearFiltersButton);
+        gbc.gridx = 0; gbc.gridy = 3;
+        gbc.gridwidth = 4;
+        filterPanel.add(filterButtonsPanel, gbc);
+
+        // Navigation panel
         JPanel navigationPanel = new JPanel();
         navigationPanel.add(previousButton);
         navigationPanel.add(pageInfoLabel);
         navigationPanel.add(nextButton);
 
-        setLayout(new BorderLayout());
+        // Add all panels to frame
+        JPanel topPanel = new JPanel(new BorderLayout());
+        topPanel.add(controlPanel, BorderLayout.NORTH);
+        topPanel.add(filterPanel, BorderLayout.CENTER);
+
+        add(topPanel, BorderLayout.NORTH);
         add(new JScrollPane(carTable), BorderLayout.CENTER);
-        add(controlPanel, BorderLayout.NORTH);
         add(navigationPanel, BorderLayout.SOUTH);
     }
 
-    public JLabel getPageInfoLabel() { return pageInfoLabel; }
-
-    // Getters for components
+    // Getters for all components
     public JTable getCarTable() { return carTable; }
     public JButton getAddButton() { return addButton; }
     public JButton getEditButton() { return editButton; }
@@ -67,6 +134,15 @@ public class CarView extends JFrame {
     public JButton getPreviousButton() { return previousButton; }
     public JButton getNextButton() { return nextButton; }
     public JComboBox<String> getSortComboBox() { return sortComboBox; }
+    public JLabel getPageInfoLabel() { return pageInfoLabel; }
+
+    // Getters for filter components
     public JTextField getBrandFilterField() { return brandFilterField; }
-    public JButton getApplyFilterButton() { return applyFilterButton; }
+    public JTextField getModelFilterField() { return modelFilterField; }
+    public JTextField getTypeFilterField() { return typeFilterField; }
+    public JTextField getYearFilterField() { return yearFilterField; }
+    public JTextField getMinPriceField() { return minPriceField; }
+    public JTextField getMaxPriceField() { return maxPriceField; }
+    public JButton getApplyFiltersButton() { return applyFiltersButton; }
+    public JButton getClearFiltersButton() { return clearFiltersButton; }
 }

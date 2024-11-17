@@ -50,10 +50,83 @@ public class CarController {
             updateSort();
             updateNavigationButtons();
         });
-        view.getApplyFilterButton().addActionListener(e -> {
-            applyFilter();
+        view.getApplyFiltersButton().addActionListener(e -> applyMultipleFilters());
+        view.getClearFiltersButton().addActionListener(e -> clearFilters());
+    }
+
+    private void applyMultipleFilters() {
+        try {
+            // Начинаем с базового фильтра
+            IFilterCriteria filter = new NoFilter();
+
+            // Добавляем фильтр по бренду
+            String brand = view.getBrandFilterField().getText().trim();
+            if (!brand.isEmpty()) {
+                filter = new BrandFilterDecorator(filter, brand);
+            }
+
+            // Добавляем фильтр по модели
+            String model = view.getModelFilterField().getText().trim();
+            if (!model.isEmpty()) {
+                filter = new ModelFilterDecorator(filter, model);
+            }
+
+            // Добавляем фильтр по типу
+            String type = view.getTypeFilterField().getText().trim();
+            if (!type.isEmpty()) {
+                filter = new TypeFilterDecorator(filter, type);
+            }
+
+            // Добавляем фильтр по году
+            String year = view.getYearFilterField().getText().trim();
+            if (!year.isEmpty()) {
+                filter = new YearFilterDecorator(filter, year);
+            }
+
+            // Добавляем фильтр по цене
+            String minPrice = view.getMinPriceField().getText().trim();
+            String maxPrice = view.getMaxPriceField().getText().trim();
+            if (!minPrice.isEmpty() && !maxPrice.isEmpty()) {
+                filter = new PriceRangeFilterDecorator(
+                        filter,
+                        Double.parseDouble(minPrice),
+                        Double.parseDouble(maxPrice)
+                );
+            }
+
+            // Применяем комбинированный фильтр
+            this.model.setFilter(filter);
             updateNavigationButtons();
-        });
+
+        } catch (NumberFormatException ex) {
+            JOptionPane.showMessageDialog(
+                    view,
+                    "Please enter valid numeric values for year and price fields",
+                    "Invalid Input",
+                    JOptionPane.ERROR_MESSAGE
+            );
+        } catch (Exception ex) {
+            JOptionPane.showMessageDialog(
+                    view,
+                    "Error applying filters: " + ex.getMessage(),
+                    "Error",
+                    JOptionPane.ERROR_MESSAGE
+            );
+        }
+    }
+
+    private void clearFilters() {
+        // Очищаем все поля фильтров
+        view.getBrandFilterField().setText("");
+        view.getModelFilterField().setText("");
+        view.getTypeFilterField().setText("");
+        view.getYearFilterField().setText("");
+        view.getMinPriceField().setText("");
+        view.getMaxPriceField().setText("");
+
+        // Сбрасываем фильтр на базовый
+        model.setFilter(new NoFilter());
+        updateNavigationButtons();
     }
 
     private void showAddCarDialog() {
