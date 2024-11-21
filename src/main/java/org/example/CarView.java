@@ -34,6 +34,16 @@ public class CarView extends JFrame {
         nextButton = new JButton("Next");
         pageInfoLabel = new JLabel("Page: 0/0");
 
+        // Настраиваем таблицу
+        carTable.setSelectionMode(ListSelectionModel.SINGLE_SELECTION);
+        carTable.setRowHeight(25);
+        carTable.setShowGrid(true);
+        carTable.setGridColor(Color.LIGHT_GRAY);
+        carTable.getTableHeader().setReorderingAllowed(false);
+
+        // Добавляем всплывающую подсказку
+        carTable.setToolTipText("Double-click or press Enter to view details");
+
         String[] sortOptions = {"vin", "brand", "model"};
         sortComboBox = new JComboBox<>(sortOptions);
 

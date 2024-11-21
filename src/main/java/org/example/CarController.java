@@ -2,6 +2,7 @@ package org.example;
 
 import javax.swing.*;
 import java.awt.*;
+import java.awt.event.*;
 
 public class CarController {
     private final CarView view;
@@ -18,8 +19,36 @@ public class CarController {
 
     private void initializeView() {
         view.getCarTable().setModel(model);
+        // Добавляем слушатель кликов по таблице
+        view.getCarTable().addMouseListener(new MouseAdapter() {
+            @Override
+            public void mouseClicked(MouseEvent e) {
+                if (e.getClickCount() == 2) { // Двойной клик
+                    showCarDetails();
+                }
+            }
+        });
+
+        // Добавляем слушатель клавиш для таблицы
+        view.getCarTable().addKeyListener(new KeyAdapter() {
+            @Override
+            public void keyPressed(KeyEvent e) {
+                if (e.getKeyCode() == KeyEvent.VK_ENTER) {
+                    showCarDetails();
+                }
+            }
+        });
         updatePageInfo();
         view.setVisible(true);
+    }
+
+    private void showCarDetails() {
+        int selectedRow = view.getCarTable().getSelectedRow();
+        if (selectedRow != -1) {
+            Car selectedCar = model.getCarAt(selectedRow);
+            CarDetailsDialog dialog = new CarDetailsDialog(view, selectedCar);
+            dialog.setVisible(true);
+        }
     }
 
     private void updatePageInfo() {
@@ -110,60 +139,14 @@ public class CarController {
     }
 
     private void showAddCarDialog() {
-        // Create input dialog
-        JDialog dialog = new JDialog(view, "Add New Car", true);
-        dialog.setLayout(new GridLayout(8, 2));
-
-        // Create input fields
-        JTextField vinField = new JTextField();
-        JTextField brandField = new JTextField();
-        JTextField modelField = new JTextField();
-        JTextField yearField = new JTextField();
-        JTextField priceField = new JTextField();
-        JTextField typeField = new JTextField();
-
-        // Add components to dialog
-        dialog.add(new JLabel("VIN:"));
-        dialog.add(vinField);
-        dialog.add(new JLabel("Brand:"));
-        dialog.add(brandField);
-        dialog.add(new JLabel("Model:"));
-        dialog.add(modelField);
-        dialog.add(new JLabel("Year:"));
-        dialog.add(yearField);
-        dialog.add(new JLabel("Price:"));
-        dialog.add(priceField);
-        dialog.add(new JLabel("Type:"));
-        dialog.add(typeField);
-
-        JButton saveButton = new JButton("Save");
-        saveButton.addActionListener(e -> {
-            try {
-                Car newCar = new Car(
-                        0, // ID will be generated
-                        vinField.getText(),
-                        brandField.getText(),
-                        modelField.getText(),
-                        Integer.parseInt(yearField.getText()),
-                        Double.parseDouble(priceField.getText()),
-                        typeField.getText()
-                );
-
-                model.getRepository().add(newCar);
-                model.refreshData();
-                dialog.dispose();
-            } catch (Exception ex) {
-                JOptionPane.showMessageDialog(dialog, ex.getMessage());
-            }
-        });
-
-        JButton cancelButton = new JButton("Cancel");
-        cancelButton.addActionListener(e -> dialog.dispose());
-
-        dialog.add(saveButton);
-        dialog.add(cancelButton);
-        dialog.pack();
-        dialog.setVisible(true);
+        CarDialogController dialogController = new CarDialogController(
+                view,
+                "Add New Car",
+                model.getRepository(),
+                new AddCarStrategy()
+        );
+        dialogController.getView().clearFields();
+        dialogController.showDialog();
     }
 
     private void showEditCarDialog() {
@@ -175,66 +158,14 @@ public class CarController {
 
         Car selectedCar = model.getCarAt(selectedRow);
 
-        // Create edit dialog
-        JDialog dialog = new JDialog(view, "Edit Car", true);
-        dialog.setLayout(new GridLayout(8, 2));
-
-        // Create and populate input fields
-        JTextField vinField = new JTextField(selectedCar.getVin());
-        JTextField brandField = new JTextField(selectedCar.getBrand());
-        JTextField modelField = new JTextField(selectedCar.getModel());
-        JTextField yearField = new JTextField(String.valueOf(selectedCar.getYear()));
-        JTextField priceField = new JTextField(String.valueOf(selectedCar.getPrice()));
-        JTextField typeField = new JTextField(selectedCar.getType());
-
-        // Add components to dialog
-        dialog.add(new JLabel("VIN:"));
-        dialog.add(vinField);
-        dialog.add(new JLabel("Brand:"));
-        dialog.add(brandField);
-        dialog.add(new JLabel("Model:"));
-        dialog.add(modelField);
-        dialog.add(new JLabel("Year:"));
-        dialog.add(yearField);
-        dialog.add(new JLabel("Price:"));
-        dialog.add(priceField);
-        dialog.add(new JLabel("Type:"));
-        dialog.add(typeField);
-
-        // Save button
-        JButton saveButton = new JButton("Save");
-        saveButton.addActionListener(e -> {
-            try {
-                Car updatedCar = new Car(
-                        selectedCar.getCarId(),
-                        vinField.getText(),
-                        brandField.getText(),
-                        modelField.getText(),
-                        Integer.parseInt(yearField.getText()),
-                        Double.parseDouble(priceField.getText()),
-                        typeField.getText()
-                );
-
-                model.getRepository().update(updatedCar);
-                model.refreshData();
-                dialog.dispose();
-                JOptionPane.showMessageDialog(view, "Car updated successfully");
-            } catch (Exception ex) {
-                JOptionPane.showMessageDialog(dialog, "Error updating car: " + ex.getMessage());
-            }
-        });
-
-        // Cancel button
-        JButton cancelButton = new JButton("Cancel");
-        cancelButton.addActionListener(e -> dialog.dispose());
-
-        dialog.add(saveButton);
-        dialog.add(cancelButton);
-
-        // Set dialog properties
-        dialog.setSize(300, 300);
-        dialog.setLocationRelativeTo(view);
-        dialog.setVisible(true);
+        CarDialogController dialogController = new CarDialogController(
+                view,
+                "Edit Car",
+                model.getRepository(),
+                new EditCarStrategy(selectedCar)
+        );
+        dialogController.getView().setCarData(selectedCar);
+        dialogController.showDialog();
     }
 
     private void deleteCar() {
