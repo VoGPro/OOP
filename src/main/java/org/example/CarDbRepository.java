@@ -39,6 +39,10 @@ public class CarDbRepository implements ICarRepository {
         StringBuilder sql = new StringBuilder("SELECT * FROM cars WHERE 1=1");
         List<Object> params = new ArrayList<>();
 
+        if (filterCriteria instanceof VinFilterDecorator) {
+            sql.append(" AND LOWER(vin) LIKE LOWER(?)");
+            params.add(((VinFilterDecorator) filterCriteria).getVin());
+        }
         if (filterCriteria instanceof YearFilterDecorator) {
             sql.append(" AND year = ?");
             params.add(((YearFilterDecorator) filterCriteria).getYear());

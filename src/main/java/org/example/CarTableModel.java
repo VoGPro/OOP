@@ -5,7 +5,7 @@ import java.util.ArrayList;
 import java.util.List;
 
 public class CarTableModel extends AbstractTableModel implements IRepositoryObserver {
-    private final String[] columnNames = {"car_id", "vin", "brand", "model", "year", "price", "type"};
+    private final String[] columnNames = {"vin", "brand", "model"};
     private List<Car> cars = new ArrayList<>();
     private final ObservableCarRepository repository;
     private IFilterCriteria currentFilter;
@@ -17,7 +17,7 @@ public class CarTableModel extends AbstractTableModel implements IRepositoryObse
     public CarTableModel(ObservableCarRepository repository) {
         this.repository = repository;
         this.currentFilter = new NoFilter();
-        this.currentSortField = "car_id";
+        this.currentSortField = "vin";
         this.currentPage = 0;
         this.pageSize = 10;
 
@@ -98,13 +98,9 @@ public class CarTableModel extends AbstractTableModel implements IRepositoryObse
     public Object getValueAt(int rowIndex, int columnIndex) {
         Car car = cars.get(rowIndex);
         return switch (columnIndex) {
-            case 0 -> car.getCarId();
-            case 1 -> car.getVin();
-            case 2 -> car.getBrand();
-            case 3 -> car.getModel();
-            case 4 -> car.getYear();
-            case 5 -> car.getPrice();
-            case 6 -> car.getType();
+            case 0 -> car.getVin();
+            case 1 -> car.getBrand();
+            case 2 -> car.getModel();
             default -> null;
         };
     }

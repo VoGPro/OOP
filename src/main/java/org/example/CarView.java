@@ -14,12 +14,9 @@ public class CarView extends JFrame {
     private final JLabel pageInfoLabel;
 
     // Фильтры
+    private final JTextField vinFilterField;
     private final JTextField brandFilterField;
     private final JTextField modelFilterField;
-    private final JTextField typeFilterField;
-    private final JTextField yearFilterField;
-    private final JTextField minPriceField;
-    private final JTextField maxPriceField;
     private final JButton applyFiltersButton;
     private final JButton clearFiltersButton;
 
@@ -37,16 +34,13 @@ public class CarView extends JFrame {
         nextButton = new JButton("Next");
         pageInfoLabel = new JLabel("Page: 0/0");
 
-        String[] sortOptions = {"car_id", "brand", "model", "year", "price", "type"};
+        String[] sortOptions = {"vin", "brand", "model"};
         sortComboBox = new JComboBox<>(sortOptions);
 
         // Initialize filter components
+        vinFilterField = new JTextField(10);
         brandFilterField = new JTextField(10);
         modelFilterField = new JTextField(10);
-        typeFilterField = new JTextField(10);
-        yearFilterField = new JTextField(10);
-        minPriceField = new JTextField(10);
-        maxPriceField = new JTextField(10);
         applyFiltersButton = new JButton("Apply Filters");
         clearFiltersButton = new JButton("Clear Filters");
 
@@ -68,39 +62,23 @@ public class CarView extends JFrame {
         gbc.insets = new Insets(5, 5, 5, 5);
         gbc.anchor = GridBagConstraints.WEST;
 
-        // Brand filter
+        // VIN filter
         gbc.gridx = 0; gbc.gridy = 0;
-        filterPanel.add(new JLabel("Brand:"), gbc);
+        filterPanel.add(new JLabel("VIN:"), gbc);
         gbc.gridx = 1;
+        filterPanel.add(vinFilterField, gbc);
+
+        // Brand filter
+        gbc.gridx = 2;
+        filterPanel.add(new JLabel("Brand:"), gbc);
+        gbc.gridx = 3;
         filterPanel.add(brandFilterField, gbc);
 
         // Model filter
-        gbc.gridx = 2;
-        filterPanel.add(new JLabel("Model:"), gbc);
-        gbc.gridx = 3;
-        filterPanel.add(modelFilterField, gbc);
-
-        // Type filter
         gbc.gridx = 0; gbc.gridy = 1;
-        filterPanel.add(new JLabel("Type:"), gbc);
+        filterPanel.add(new JLabel("Model:"), gbc);
         gbc.gridx = 1;
-        filterPanel.add(typeFilterField, gbc);
-
-        // Year filter
-        gbc.gridx = 2;
-        filterPanel.add(new JLabel("Year:"), gbc);
-        gbc.gridx = 3;
-        filterPanel.add(yearFilterField, gbc);
-
-        // Price range filter
-        gbc.gridx = 0; gbc.gridy = 2;
-        filterPanel.add(new JLabel("Min Price:"), gbc);
-        gbc.gridx = 1;
-        filterPanel.add(minPriceField, gbc);
-        gbc.gridx = 2;
-        filterPanel.add(new JLabel("Max Price:"), gbc);
-        gbc.gridx = 3;
-        filterPanel.add(maxPriceField, gbc);
+        filterPanel.add(modelFilterField, gbc);
 
         // Filter buttons
         JPanel filterButtonsPanel = new JPanel(new FlowLayout(FlowLayout.CENTER));
@@ -137,12 +115,9 @@ public class CarView extends JFrame {
     public JLabel getPageInfoLabel() { return pageInfoLabel; }
 
     // Getters for filter components
+    public JTextField getVinFilterField() { return vinFilterField; }
     public JTextField getBrandFilterField() { return brandFilterField; }
     public JTextField getModelFilterField() { return modelFilterField; }
-    public JTextField getTypeFilterField() { return typeFilterField; }
-    public JTextField getYearFilterField() { return yearFilterField; }
-    public JTextField getMinPriceField() { return minPriceField; }
-    public JTextField getMaxPriceField() { return maxPriceField; }
     public JButton getApplyFiltersButton() { return applyFiltersButton; }
     public JButton getClearFiltersButton() { return clearFiltersButton; }
 }

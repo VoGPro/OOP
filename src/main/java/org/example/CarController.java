@@ -59,6 +59,12 @@ public class CarController {
             // Начинаем с базового фильтра
             IFilterCriteria filter = new NoFilter();
 
+            // Добавляем фильтр по vin
+            String vin = view.getVinFilterField().getText().trim();
+            if (!vin.isEmpty()) {
+                filter = new VinFilterDecorator(filter, vin);
+            }
+
             // Добавляем фильтр по бренду
             String brand = view.getBrandFilterField().getText().trim();
             if (!brand.isEmpty()) {
@@ -69,29 +75,6 @@ public class CarController {
             String model = view.getModelFilterField().getText().trim();
             if (!model.isEmpty()) {
                 filter = new ModelFilterDecorator(filter, model);
-            }
-
-            // Добавляем фильтр по типу
-            String type = view.getTypeFilterField().getText().trim();
-            if (!type.isEmpty()) {
-                filter = new TypeFilterDecorator(filter, type);
-            }
-
-            // Добавляем фильтр по году
-            String year = view.getYearFilterField().getText().trim();
-            if (!year.isEmpty()) {
-                filter = new YearFilterDecorator(filter, year);
-            }
-
-            // Добавляем фильтр по цене
-            String minPrice = view.getMinPriceField().getText().trim();
-            String maxPrice = view.getMaxPriceField().getText().trim();
-            if (!minPrice.isEmpty() && !maxPrice.isEmpty()) {
-                filter = new PriceRangeFilterDecorator(
-                        filter,
-                        Double.parseDouble(minPrice),
-                        Double.parseDouble(maxPrice)
-                );
             }
 
             // Применяем комбинированный фильтр
@@ -117,12 +100,9 @@ public class CarController {
 
     private void clearFilters() {
         // Очищаем все поля фильтров
+        view.getVinFilterField().setText("");
         view.getBrandFilterField().setText("");
         view.getModelFilterField().setText("");
-        view.getTypeFilterField().setText("");
-        view.getYearFilterField().setText("");
-        view.getMinPriceField().setText("");
-        view.getMaxPriceField().setText("");
 
         // Сбрасываем фильтр на базовый
         model.setFilter(new NoFilter());

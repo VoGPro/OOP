@@ -7,6 +7,13 @@ public class FilterBuilder {
         this.filter = new NoFilter();
     }
 
+    public FilterBuilder withVin(String vin) {
+        if (vin != null && !vin.isEmpty()) {
+            filter = new VinFilterDecorator(filter, vin);
+        }
+        return this;
+    }
+
     public FilterBuilder withBrand(String brand) {
         if (brand != null && !brand.isEmpty()) {
             filter = new BrandFilterDecorator(filter, brand);
