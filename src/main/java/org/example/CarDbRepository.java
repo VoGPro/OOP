@@ -4,13 +4,49 @@ import java.sql.*;
 import java.util.ArrayList;
 import java.util.List;
 
-public class CarDbRepository implements ICarRepository {
+public class CarDbRepository implements ICarRepository, IObservableRepository {
     private DbConfig dbConfig;
+    private final List<IRepositoryObserver> observers = new ArrayList<>();
+    private IFilterCriteria currentFilter = new NoFilter();
+    private String currentSortField = "car_id";
+    private int pageSize = 10;
 
     public CarDbRepository() {
         this.dbConfig = dbConfig.getInstance();
     }
 
+    @Override
+    public void addObserver(IRepositoryObserver observer) {
+        observers.add(observer);
+    }
+
+    @Override
+    public void removeObserver(IRepositoryObserver observer) {
+        observers.remove(observer);
+    }
+
+    @Override
+    public void notifyObservers() {
+        for (IRepositoryObserver observer : observers) {
+            observer.onRepositoryChanged();
+        }
+    }
+
+    public void setFilter(IFilterCriteria filter) {
+        this.currentFilter = filter;
+        notifyObservers();
+    }
+
+    public void setSortField(String sortField) {
+        this.currentSortField = sortField;
+        notifyObservers();
+    }
+
+    public int getTotalPages() {
+        return (int) Math.ceil((double) get_count(currentFilter) / pageSize);
+    }
+
+    @Override
     public Car getById(int car_id) {
         String sql = "SELECT * FROM cars WHERE car_id = ?";
 
@@ -93,6 +129,7 @@ public class CarDbRepository implements ICarRepository {
         return result;
     }
 
+    @Override
     public void add(Car car) {
         String sql = """
             INSERT INTO cars (vin, brand, model, year, price, type)
@@ -111,11 +148,14 @@ public class CarDbRepository implements ICarRepository {
             stmt.setString(6, car.getType());
             stmt.executeQuery();
 
+            notifyObservers();
+
         } catch (SQLException e) {
             throw new RuntimeException("Ошибка при добавлении автомобиля", e);
         }
     }
 
+    @Override
     public void update(Car car) {
         String sql = """
             UPDATE cars
@@ -138,11 +178,15 @@ public class CarDbRepository implements ICarRepository {
             if (rowsAffected == 0) {
                 throw new IllegalArgumentException("Автомобиль с ID " + car.getCarId() + " не найден");
             }
+
+            notifyObservers();
+
         } catch (SQLException e) {
             throw new RuntimeException("Ошибка при обновлении автомобиля", e);
         }
     }
 
+    @Override
     public void delete(int car_id) {
         String sql = "DELETE FROM cars WHERE car_id = ?";
 
@@ -155,6 +199,9 @@ public class CarDbRepository implements ICarRepository {
             if (rowsAffected == 0) {
                 throw new IllegalArgumentException("Автомобиль с ID " + car_id + " не найден");
             }
+
+            notifyObservers();
+
         } catch (SQLException e) {
             throw new RuntimeException("Ошибка при удалении автомобиля", e);
         }
@@ -166,6 +213,10 @@ public class CarDbRepository implements ICarRepository {
         List<Object> params = new ArrayList<>();
 
         // Добавляем условия фильтрации в SQL
+        if (filterCriteria instanceof VinFilterDecorator) {
+            sql.append(" AND LOWER(vin) LIKE LOWER(?)");
+            params.add(((VinFilterDecorator) filterCriteria).getVin());
+        }
         if (filterCriteria instanceof YearFilterDecorator) {
             sql.append(" AND year = ?");
             params.add(((YearFilterDecorator) filterCriteria).getYear());
@@ -174,7 +225,6 @@ public class CarDbRepository implements ICarRepository {
             sql.append(" AND LOWER(brand) = LOWER(?)");
             params.add(((BrandFilterDecorator) filterCriteria).getBrand());
         }
-        // ... добавьте другие условия фильтрации ...
 
         try (Connection conn = dbConfig.getConnection();
              PreparedStatement pstmt = conn.prepareStatement(sql.toString())) {
@@ -204,5 +254,17 @@ public class CarDbRepository implements ICarRepository {
                 rs.getDouble("price"),
                 rs.getString("type")
         );
+    }
+
+    public IFilterCriteria getCurrentFilter() {
+        return currentFilter;
+    }
+
+    public String getCurrentSortField() {
+        return currentSortField;
+    }
+
+    public int getPageSize() {
+        return pageSize;
     }
 }

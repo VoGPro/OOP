@@ -1,35 +1,52 @@
 package org.example;
 
 import javax.swing.*;
-import java.awt.*;
+import javax.swing.table.DefaultTableModel;
 import java.awt.event.*;
+import java.util.List;
 
-public class CarController {
+public class CarController implements IRepositoryObserver {
     private final CarView view;
-    private final CarTableModel model;
+    private final CarDbRepository model;
+    private int currentPage = 0;
 
-    public CarController(CarView view, CarTableModel model) {
+    public CarController(CarView view, CarDbRepository model) {
         this.view = view;
         this.model = model;
 
+        model.addObserver(this);
         initializeView();
         initializeListeners();
         updateNavigationButtons();
     }
 
+    @Override
+    public void onRepositoryChanged() {
+        refreshTableData();
+        updateNavigationButtons();
+    }
+
     private void initializeView() {
-        view.getCarTable().setModel(model);
-        // Добавляем слушатель кликов по таблице
+        // Инициализация таблицы
+        String[] columnNames = {"vin", "brand", "model"};
+        DefaultTableModel tableModel = new DefaultTableModel(columnNames, 0) {
+            @Override
+            public boolean isCellEditable(int row, int column) {
+                return false;
+            }
+        };
+        view.getCarTable().setModel(tableModel);
+
+        // Добавляем слушатели для просмотра деталей
         view.getCarTable().addMouseListener(new MouseAdapter() {
             @Override
             public void mouseClicked(MouseEvent e) {
-                if (e.getClickCount() == 2) { // Двойной клик
+                if (e.getClickCount() == 2) {
                     showCarDetails();
                 }
             }
         });
 
-        // Добавляем слушатель клавиш для таблицы
         view.getCarTable().addKeyListener(new KeyAdapter() {
             @Override
             public void keyPressed(KeyEvent e) {
@@ -38,77 +55,233 @@ public class CarController {
                 }
             }
         });
-        updatePageInfo();
+
+        refreshTableData();
         view.setVisible(true);
-    }
-
-    private void showCarDetails() {
-        int selectedRow = view.getCarTable().getSelectedRow();
-        if (selectedRow != -1) {
-            Car selectedCar = model.getCarAt(selectedRow);
-            CarDetailsDialog dialog = new CarDetailsDialog(view, selectedCar);
-            dialog.setVisible(true);
-        }
-    }
-
-    private void updatePageInfo() {
-        int currentPage = model.getCurrentPage() + 1;
-        int totalPages = model.getTotalPages();
-        view.getPageInfoLabel().setText(String.format("Page: %d/%d", currentPage, totalPages));
-    }
-
-    private void updateNavigationButtons() {
-        view.getPreviousButton().setEnabled(model.hasPreviousPage());
-        view.getNextButton().setEnabled(model.hasNextPage());
-        updatePageInfo();
     }
 
     private void initializeListeners() {
         view.getAddButton().addActionListener(e -> showAddCarDialog());
         view.getEditButton().addActionListener(e -> showEditCarDialog());
         view.getDeleteButton().addActionListener(e -> deleteCar());
+
         view.getPreviousButton().addActionListener(e -> {
-            model.previousPage();
-            updateNavigationButtons();
+            if (currentPage > 0) {
+                currentPage--;
+                refreshTableData();
+                updateNavigationButtons();
+            }
         });
+
         view.getNextButton().addActionListener(e -> {
-            model.nextPage();
-            updateNavigationButtons();
+            if (currentPage < model.getTotalPages() - 1) {
+                currentPage++;
+                refreshTableData();
+                updateNavigationButtons();
+            }
         });
+
         view.getSortComboBox().addActionListener(e -> {
             updateSort();
+            refreshTableData();
             updateNavigationButtons();
         });
+
         view.getApplyFiltersButton().addActionListener(e -> applyMultipleFilters());
         view.getClearFiltersButton().addActionListener(e -> clearFilters());
     }
 
+    private void refreshTableData() {
+        List<Car> cars = model.get_k_n_short_list(
+                currentPage,
+                model.getPageSize(),
+                model.getCurrentFilter(),
+                model.getCurrentSortField()
+        );
+        updateTableData(cars);
+    }
+
+    private void updateTableData(List<Car> cars) {
+        DefaultTableModel tableModel = (DefaultTableModel) view.getCarTable().getModel();
+        tableModel.setRowCount(0);
+        for (Car car : cars) {
+            tableModel.addRow(new Object[]{
+                    car.getVin(),
+                    car.getBrand(),
+                    car.getModel()
+            });
+        }
+    }
+
+    private void updateNavigationButtons() {
+        view.getPreviousButton().setEnabled(currentPage > 0);
+        view.getNextButton().setEnabled(currentPage < model.getTotalPages() - 1);
+        updatePageInfo();
+    }
+
+    private void updatePageInfo() {
+        view.getPageInfoLabel().setText(
+                String.format("Page: %d/%d", currentPage + 1, model.getTotalPages())
+        );
+    }
+
+    private void showCarDetails() {
+        int selectedRow = view.getCarTable().getSelectedRow();
+        if (selectedRow != -1) {
+            String vin = (String) view.getCarTable().getValueAt(selectedRow, 0);
+            // Находим автомобиль по VIN
+            List<Car> cars = model.get_k_n_short_list(
+                    currentPage,
+                    model.getPageSize(),
+                    new VinFilterDecorator(new NoFilter(), vin),
+                    model.getCurrentSortField()
+            );
+            if (!cars.isEmpty()) {
+                CarDetailsDialog dialog = new CarDetailsDialog(view, cars.get(0));
+                dialog.setVisible(true);
+            }
+        }
+    }
+
+    private void showAddCarDialog() {
+        CarDialogController dialogController = new CarDialogController(
+                view,
+                "Add New Car",
+                model,
+                new AddCarStrategy()
+        );
+        dialogController.getView().clearFields();
+        dialogController.showDialog();
+    }
+
+    private void showEditCarDialog() {
+        int selectedRow = view.getCarTable().getSelectedRow();
+        if (selectedRow == -1) {
+            JOptionPane.showMessageDialog(view, "Please select a car to edit");
+            return;
+        }
+
+        // Получаем VIN выбранной строки
+        String vin = (String) view.getCarTable().getValueAt(selectedRow, 0);
+
+        // Находим автомобиль по VIN
+        List<Car> cars = model.get_k_n_short_list(
+                currentPage,
+                model.getPageSize(),
+                new VinFilterDecorator(new NoFilter(), vin),
+                model.getCurrentSortField()
+        );
+
+        if (!cars.isEmpty()) {
+            Car selectedCar = cars.get(0);
+
+            CarDialogController dialogController = new CarDialogController(
+                    view,
+                    "Edit Car",
+                    model,
+                    new EditCarStrategy(selectedCar)
+            );
+            dialogController.getView().setCarData(selectedCar);
+            dialogController.showDialog();
+        } else {
+            JOptionPane.showMessageDialog(
+                    view,
+                    "Error: Car not found",
+                    "Error",
+                    JOptionPane.ERROR_MESSAGE
+            );
+        }
+    }
+
+    private void deleteCar() {
+        int selectedRow = view.getCarTable().getSelectedRow();
+        if (selectedRow == -1) {
+            JOptionPane.showMessageDialog(view, "Please select a car to delete");
+            return;
+        }
+
+        // Получаем VIN выбранной строки
+        String vin = (String) view.getCarTable().getValueAt(selectedRow, 0);
+
+        // Находим автомобиль по VIN
+        List<Car> cars = model.get_k_n_short_list(
+                currentPage,
+                model.getPageSize(),
+                new VinFilterDecorator(new NoFilter(), vin),
+                model.getCurrentSortField()
+        );
+
+        if (!cars.isEmpty()) {
+            Car carToDelete = cars.get(0);
+
+            int confirm = JOptionPane.showConfirmDialog(
+                    view,
+                    "Are you sure you want to delete this car?",
+                    "Confirm Delete",
+                    JOptionPane.YES_NO_OPTION
+            );
+
+            if (confirm == JOptionPane.YES_OPTION) {
+                try {
+                    model.delete(carToDelete.getCarId());
+                    JOptionPane.showMessageDialog(view, "Car deleted successfully");
+                } catch (Exception ex) {
+                    JOptionPane.showMessageDialog(
+                            view,
+                            "Error deleting car: " + ex.getMessage(),
+                            "Error",
+                            JOptionPane.ERROR_MESSAGE
+                    );
+                }
+            }
+        } else {
+            JOptionPane.showMessageDialog(
+                    view,
+                    "Error: Car not found",
+                    "Error",
+                    JOptionPane.ERROR_MESSAGE
+            );
+        }
+    }
+
+    private void updateSort() {
+        String selectedSort = (String) view.getSortComboBox().getSelectedItem();
+        if (selectedSort != null) {
+            String sortField = switch (selectedSort.toLowerCase()) {
+                case "id" -> "car_id";
+                case "vin" -> "vin";
+                case "brand" -> "brand";
+                case "model" -> "model";
+                case "year" -> "year";
+                case "price" -> "price";
+                case "type" -> "type";
+                default -> "car_id";
+            };
+            model.setSortField(sortField);
+        }
+    }
+
     private void applyMultipleFilters() {
         try {
-            // Начинаем с базового фильтра
-            IFilterCriteria filter = new NoFilter();
+            FilterBuilder filterBuilder = new FilterBuilder();
 
-            // Добавляем фильтр по vin
             String vin = view.getVinFilterField().getText().trim();
             if (!vin.isEmpty()) {
-                filter = new VinFilterDecorator(filter, vin);
+                filterBuilder.withVin(vin);
             }
 
-            // Добавляем фильтр по бренду
             String brand = view.getBrandFilterField().getText().trim();
             if (!brand.isEmpty()) {
-                filter = new BrandFilterDecorator(filter, brand);
+                filterBuilder.withBrand(brand);
             }
 
-            // Добавляем фильтр по модели
             String model = view.getModelFilterField().getText().trim();
             if (!model.isEmpty()) {
-                filter = new ModelFilterDecorator(filter, model);
+                filterBuilder.withModel(model);
             }
 
-            // Применяем комбинированный фильтр
-            this.model.setFilter(filter);
-            updateNavigationButtons();
+            currentPage = 0;
+            this.model.setFilter(filterBuilder.build());
 
         } catch (NumberFormatException ex) {
             JOptionPane.showMessageDialog(
@@ -128,81 +301,11 @@ public class CarController {
     }
 
     private void clearFilters() {
-        // Очищаем все поля фильтров
+        currentPage = 0;
         view.getVinFilterField().setText("");
         view.getBrandFilterField().setText("");
         view.getModelFilterField().setText("");
 
-        // Сбрасываем фильтр на базовый
         model.setFilter(new NoFilter());
-        updateNavigationButtons();
-    }
-
-    private void showAddCarDialog() {
-        CarDialogController dialogController = new CarDialogController(
-                view,
-                "Add New Car",
-                model.getRepository(),
-                new AddCarStrategy()
-        );
-        dialogController.getView().clearFields();
-        dialogController.showDialog();
-    }
-
-    private void showEditCarDialog() {
-        int selectedRow = view.getCarTable().getSelectedRow();
-        if (selectedRow == -1) {
-            JOptionPane.showMessageDialog(view, "Please select a car to edit");
-            return;
-        }
-
-        Car selectedCar = model.getCarAt(selectedRow);
-
-        CarDialogController dialogController = new CarDialogController(
-                view,
-                "Edit Car",
-                model.getRepository(),
-                new EditCarStrategy(selectedCar)
-        );
-        dialogController.getView().setCarData(selectedCar);
-        dialogController.showDialog();
-    }
-
-    private void deleteCar() {
-        int selectedRow = view.getCarTable().getSelectedRow();
-        if (selectedRow == -1) {
-            JOptionPane.showMessageDialog(view, "Please select a car to delete");
-            return;
-        }
-
-        Car car = model.getCarAt(selectedRow);
-        int confirm = JOptionPane.showConfirmDialog(
-                view,
-                "Are you sure you want to delete this car?",
-                "Confirm Delete",
-                JOptionPane.YES_NO_OPTION
-        );
-
-        if (confirm == JOptionPane.YES_OPTION) {
-            model.getRepository().delete(car.getCarId());
-            model.refreshData();
-        }
-    }
-
-    private void updateSort() {
-        String selectedSort = (String) view.getSortComboBox().getSelectedItem();
-        if (selectedSort != null) {
-            model.setSortField(selectedSort.toLowerCase());
-        }
-    }
-
-    private void applyFilter() {
-        String brandFilter = view.getBrandFilterField().getText();
-        if (!brandFilter.isEmpty()) {
-            IFilterCriteria filter = new BrandFilterDecorator(new NoFilter(), brandFilter);
-            model.setFilter(filter);
-        } else {
-            model.setFilter(new NoFilter());
-        }
     }
 }
