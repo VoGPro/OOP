@@ -252,3 +252,334 @@ classDiagram
     FilterDecorator <|-- YearFilterDecorator : extends
     FilterDecorator <|-- BrandFilterDecorator : extends
 ```
+
+## Диаграмма классов MVC
+```mermaid
+classDiagram
+    class IObservableRepository {
+        <<interface>>
+        +addObserver(observer: IRepositoryObserver): void
+        +removeObserver(observer: IRepositoryObserver): void
+        +notifyObservers(): void
+    }
+
+    class ICarRepository {
+        <<interface>>
+        +getById(car_id: int): Car
+        +get_k_n_short_list(k: int, n: int, filterCriteria: IFilterCriteria, sortField: String): List~Car~
+        +add(car: Car): void
+        +update(car: Car): void
+        +delete(car_id: int): void
+        +get_count(filterCriteria: IFilterCriteria): int
+    }
+
+    class IRepositoryObserver {
+        <<interface>>
+        +onRepositoryChanged(): void
+    }
+
+    class CarDbRepository {
+        -dbConfig: DbConfig
+        -observers: List~IRepositoryObserver~
+        +CarDbRepository()
+        +addObserver(observer: IRepositoryObserver): void
+        +removeObserver(observer: IRepositoryObserver): void
+        +notifyObservers(): void
+        +getById(car_id: int): Car
+        +get_k_n_short_list(k: int, n: int, filterCriteria: IFilterCriteria, sortField: String): List~Car~
+        +add(car: Car): void
+        +update(car: Car): void
+        +delete(car_id: int): void
+        +get_count(filterCriteria: IFilterCriteria): int
+    }
+
+    class CarView {
+        -carTable: JTable
+        -addButton: JButton
+        -editButton: JButton
+        -deleteButton: JButton
+        -filterFields: Map~String, JTextField~
+        +CarView()
+        +getCarTable(): JTable
+        +getAddButton(): JButton
+        +getEditButton(): JButton
+        +getDeleteButton(): JButton
+        +getFilterFields(): Map~String, JTextField~
+    }
+
+    class CarController {
+        -view: CarView
+        -model: CarDbRepository
+        +CarController(view: CarView, model: CarDbRepository)
+        -initializeView(): void
+        -initializeListeners(): void
+        -onRepositoryChanged(): void
+        -showAddCarDialog(): void
+        -showEditCarDialog(): void
+        -showCarDetails(): void
+        -updateSort(): void
+        -applyFilters(): void
+    }
+
+    class ICarDialogStrategy {
+        <<interface>>
+        +processSave(controller: CarDialogController): void
+    }
+
+    class AddCarStrategy {
+        +processSave(controller: CarDialogController): void
+    }
+
+    class EditCarStrategy {
+        -carToEdit: Car
+        +EditCarStrategy(car: Car)
+        +processSave(controller: CarDialogController): void
+    }
+
+    class CarDialogView {
+        -vinField: JTextField
+        -brandField: JTextField
+        -modelField: JTextField
+        -yearField: JTextField
+        -priceField: JTextField
+        -typeField: JTextField
+        -saveButton: JButton
+        -cancelButton: JButton
+        +CarDialogView(owner: Frame, title: String)
+        +getVinField(): JTextField
+        +getBrandField(): JTextField
+        +getModelField(): JTextField
+        +getYearField(): JTextField
+        +getPriceField(): JTextField
+        +getTypeField(): JTextField
+        +getSaveButton(): JButton
+        +getCancelButton(): JButton
+        +setCarData(car: Car): void
+        +clearFields(): void
+    }
+
+    class CarDialogController {
+        -view: CarDialogView
+        -repository: ICarRepository
+        -strategy: ICarDialogStrategy
+        +CarDialogController(owner: Frame, title: String, repository: ICarRepository, strategy: ICarDialogStrategy)
+        +getView(): CarDialogView
+        +getRepository(): ICarRepository
+        +showDialog(): void
+    }
+
+    class CarDetailsDialog {
+        -car: Car
+        -mainPanel: JPanel
+        +CarDetailsDialog(owner: Frame, car: Car)
+        -initializeComponents(): void
+        -addField(label: String, value: String, gbc: GridBagConstraints): void
+    }
+
+    ICarRepository <|.. CarDbRepository : implements
+    IObservableRepository <|.. CarDbRepository : implements
+    IRepositoryObserver <|.. CarController : implements
+    CarDbRepository --> IRepositoryObserver : notifies
+    CarController --> CarView : uses
+    CarController --> CarDbRepository : uses
+    CarController --> CarDialogController : creates
+    CarController --> CarDetailsDialog : creates
+    CarDialogController --> CarDialogView : uses
+    CarDialogController --> CarDbRepository : uses
+    CarDialogController --> ICarDialogStrategy : uses
+    ICarDialogStrategy <|.. AddCarStrategy : implements
+    ICarDialogStrategy <|.. EditCarStrategy : implements
+```
+
+## Диаграмма последовательности MVC
+### Запуск приложения
+```mermaid
+sequenceDiagram
+    actor User
+    participant Main
+    participant View as CarView
+    participant Controller as CarController
+    participant Model as CarDbRepository
+
+    Note over User,Model: Запуск приложения
+    User->>Main: Запуск приложения
+    Main->>Model: new CarDbRepository()
+    Main->>View: new CarView()
+    Main->>Controller: new CarController(view, model)
+    Controller->>Model: addObserver(this)
+    Controller->>View: setModel(tableModel)
+    Controller->>Model: get_k_n_short_list(currentPage, pageSize, filter, sort)
+    Model-->>Controller: List<Car>
+    Controller->>View: updateTableData(cars)
+    Controller->>View: addActionListeners()
+    Controller->>View: setVisible(true)
+    View-->>User: показать данные
+```
+
+### Просмотр деталей автомобиля
+```mermaid
+sequenceDiagram
+    actor User
+    participant View as CarView
+    participant Controller as CarController
+    participant Model as CarDbRepository
+    participant DetailsDialog as CarDetailsDialog
+
+    Note over User,DetailsDialog: Просмотр деталей автомобиля
+    User->>Controller: Двойной клик по строке
+    Controller->>View: getSelectedRow()
+    View-->>Controller: selectedRow
+    Controller->>View: getValueAt(selectedRow, 0)
+    View-->>Controller: value
+    Controller->>Model: get_k_n_short_list(currentPage, pageSize, filter, sort)
+    Model-->>Controller: List<Car>
+    Controller->>DetailsDialog: new CarDetailsDialog(view, car)
+    DetailsDialog->>DetailsDialog: initializeComponents()
+    View->>DetailsDialog: setVisible(true)
+    DetailsDialog-->>User: показ деталей
+    User->>DetailsDialog: нажатие кнопки "Close"
+    DetailsDialog->>DetailsDialog: dispose()
+    DetailsDialog-->>User: закрытие диалогового окна
+```
+
+### Добавление автомобиля
+```mermaid
+sequenceDiagram
+    actor User
+    participant View as CarView
+    participant Controller as CarController
+    participant Model as CarDbRepository
+    participant DialogController as CarDialogController
+    participant DialogView as CarDialogView
+    participant AddStrategy as AddCarStrategy
+
+    Note over User,AddStrategy: Добавление автомобиля
+    User->>Controller: нажатие кнопки "Add"
+    Controller->>DialogController: new CarDialogController(view, "Add New Car", model, new AddCarStrategy())
+    DialogController->>DialogView: new CarDialogView(owner, title)
+    DialogController->>AddStrategy: new AddCarStrategy()
+    DialogController->>DialogView: addActionListeners()
+    DialogController->>DialogView: clearFields()
+    DialogController->>DialogView: setVisible(true)
+    
+    Note over Model,AddStrategy: Сохранение нового автомобиля
+    User->>DialogController: нажатие кнопки "Save"
+    DialogController->>AddStrategy: processSave(controller)
+    AddStrategy->>DialogView: getFields()
+    DialogView-->>AddStrategy: fieldValues
+    AddStrategy->>Model: add(newCar)
+    Model->>Model: executeInsertSQL()
+    Model->>Controller: notifyObservers()
+    Controller->>Model: get_k_n_short_list()
+    Model-->>Controller: List<Car>
+    Controller->>View: updateTableData(cars)
+    AddStrategy->>DialogView: dispose()
+    View-->>User: отображение новых данных
+```
+
+### Редактирование автомобиля
+```mermaid
+sequenceDiagram
+    actor User
+    participant View as CarView
+    participant Controller as CarController
+    participant Model as CarDbRepository
+    participant DialogController as CarDialogController
+    participant DialogView as CarDialogView
+    participant EditStrategy as EditCarStrategy
+
+    Note over User,EditStrategy: Редактирование автомобиля
+    User->>Controller: нажатие кнопки "Edit"
+    Controller->>View: getSelectedRow()
+    View-->>Controller: selectedRow
+    Controller->>View: getValueAt(selectedRow, 0)
+    View-->>Controller: value
+    Controller->>Model: get_k_n_short_list(currentPage, pageSize, vinFilter, sort)
+    Model-->>Controller: List<Car>
+    Controller->>DialogController: new CarDialogController(view, "Edit Car", model, new EditCarStrategy(car))
+    DialogController->>DialogView: new CarDialogView(owner, title)
+    DialogController->>EditStrategy: new EditCarStrategy(car)
+    DialogController->>DialogView: addActionListeners()
+    DialogController->>DialogView: setCarData(car)
+    DialogController->>DialogView: setVisible(true)
+
+    Note over Model,EditStrategy: Сохранение изменений
+    User->>DialogController: нажатие кнопки "Save"
+    DialogController->>EditStrategy: processSave(controller)
+    EditStrategy->>DialogView: getFields()
+    DialogView-->>EditStrategy: fieldValues
+    EditStrategy->>Model: update(updatedCar)
+    Model->>Model: executeUpdateSQL()
+    Model->>Controller: notifyObservers()
+    Controller->>Model: get_k_n_short_list()
+    Model-->>Controller: List<Car>
+    Controller->>View: updateTableData(cars)
+    EditStrategy->>DialogView: dispose()
+    View-->>User: отображение новых данных
+```
+
+### Удаление автомобиля
+```mermaid
+sequenceDiagram
+    actor User
+    participant View as CarView
+    participant Controller as CarController
+    participant Model as CarDbRepository
+
+    Note over User,Model: Удаление автомобиля
+    User->>Controller: нажатие кнопки "Delete"
+    Controller->>View: getSelectedRow()
+    View-->>Controller: selectedRow
+    Controller->>View: getValueAt(selectedRow, 0)
+    View-->>Controller: value
+    Controller->>Model: get_k_n_short_list(currentPage, pageSize, vinFilter, sort)
+    Model-->>Controller: List<Car>
+    Controller->>View: showConfirmDialog()
+    View-->>Controller: confirmed
+    Controller->>Model: delete(carId)
+    Model->>Model: executeDeleteSQL()
+    Model->>Controller: notifyObservers()
+    Controller->>Model: get_k_n_short_list()
+    Model-->>Controller: List<Car>
+    Controller->>View: updateTableData(cars)
+    View-->>User: отображение новых данных
+```
+
+### Паттерн Наблюдатель
+```mermaid
+sequenceDiagram
+    participant View as CarView
+    participant Controller as CarController
+    participant Repository as CarDbRepository
+    
+    Note over Controller,Repository: Регистрация наблюдателя
+    Controller->>Repository: addObserver(this)
+    Repository->>Repository: observers.add(observer)
+    
+    Note over View,Repository: Добавление автомобиля    
+    View->>Controller: click "Add"
+    Controller->>Repository: add(newCar)
+    Repository->>Repository: executeInsertSQL()
+    Repository->>Controller: notifyObservers()
+    Controller->>Repository: get_k_n_short_list()
+    Repository-->>Controller: List<Car>
+    Controller->>View: updateTableData(cars)
+    
+    Note over View,Repository: Редактирование автомобиля
+    View->>Controller: click "Edit"
+    Controller->>Repository: update(car)
+    Repository->>Repository: executeUpdateSQL()
+    Repository->>Controller: notifyObservers()
+    Controller->>Repository: get_k_n_short_list()
+    Repository-->>Controller: List<Car>
+    Controller->>View: updateTableData(cars)
+    
+    Note over View,Repository: Удаление автомобиля
+    View->>Controller: click "Delete"
+    Controller->>Repository: delete(carId)
+    Repository->>Repository: executeDeleteSQL()
+    Repository->>Controller: notifyObservers()
+    Controller->>Repository: get_k_n_short_list()
+    Repository-->>Controller: List<Car>
+    Controller->>View: updateTableData(cars)
+```
