@@ -22,8 +22,11 @@ public class CarController implements IRepositoryObserver {
 
     @Override
     public void onRepositoryChanged() {
-        refreshTableData();
-        updateNavigationButtons();
+        SwingUtilities.invokeLater(() -> {
+            refreshTableData();
+            updateNavigationButtons();
+            view.refreshRowNumbers();
+        });
     }
 
     private void initializeView() {
@@ -36,6 +39,8 @@ public class CarController implements IRepositoryObserver {
             }
         };
         view.getCarTable().setModel(tableModel);
+
+        tableModel.addTableModelListener(e -> view.refreshRowNumbers());
 
         // Добавляем слушатели для просмотра деталей
         view.getCarTable().addMouseListener(new MouseAdapter() {
@@ -111,6 +116,7 @@ public class CarController implements IRepositoryObserver {
                     car.getModel()
             });
         }
+        view.refreshRowNumbers();
     }
 
     private void updateNavigationButtons() {
