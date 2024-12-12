@@ -1,11 +1,21 @@
 package org.example;
 
+import com.fasterxml.jackson.annotation.JsonCreator;
+import com.fasterxml.jackson.annotation.JsonProperty;
+
 public class Car extends BriefCar {
     private int year;
     private double price;
     private String type;
 
-    public Car(int car_id, String vin, String brand, String model, int year, double price, String type) {
+    @JsonCreator
+    public Car(@JsonProperty("carId") int car_id,
+               @JsonProperty("vin") String vin,
+               @JsonProperty("brand") String brand,
+               @JsonProperty("model") String model,
+               @JsonProperty("year") int year,
+               @JsonProperty("price") double price,
+               @JsonProperty("type") String type) {
         super(car_id, vin, brand, model);
         setYear(year);
         setPrice(price);

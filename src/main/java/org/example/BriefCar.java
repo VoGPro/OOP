@@ -1,12 +1,19 @@
 package org.example;
 
+import com.fasterxml.jackson.annotation.JsonCreator;
+import com.fasterxml.jackson.annotation.JsonProperty;
+
 public class BriefCar {
     protected int car_id;
     protected String vin;
     protected String brand;
     protected String model;
 
-    public BriefCar(int car_id, String vin, String brand, String model) {
+    @JsonCreator
+    public BriefCar(@JsonProperty("carId") int car_id,
+                    @JsonProperty("vin") String vin,
+                    @JsonProperty("brand") String brand,
+                    @JsonProperty("model") String model) {
         setCarId(car_id);
         setVin(vin);
         setBrand(brand);

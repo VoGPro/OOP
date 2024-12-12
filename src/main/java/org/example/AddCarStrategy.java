@@ -8,23 +8,44 @@ public class AddCarStrategy implements ICarDialogStrategy {
         try {
             Car newCar = new Car(
                     0, // ID will be generated
-                    controller.getView().getVinField().getText(),
-                    controller.getView().getBrandField().getText(),
-                    controller.getView().getModelField().getText(),
-                    Integer.parseInt(controller.getView().getYearField().getText()),
-                    Double.parseDouble(controller.getView().getPriceField().getText()),
-                    controller.getView().getTypeField().getText()
+                    controller.getView().getVinField(),
+                    controller.getView().getBrandField(),
+                    controller.getView().getModelField(),
+                    Integer.parseInt(controller.getView().getYearField()),
+                    Double.parseDouble(controller.getView().getPriceField()),
+                    controller.getView().getTypeField()
             );
 
             controller.getRepository().add(newCar);
             controller.getView().dispose();
+
+            // Показываем сообщение об успехе в зависимости от типа view
+            if (controller.getView() instanceof CarDialogView) {
+                javax.swing.JOptionPane.showMessageDialog(
+                        (CarDialogView)controller.getView(),
+                        "Car added successfully",
+                        "Success",
+                        javax.swing.JOptionPane.INFORMATION_MESSAGE
+                );
+            } else {
+                controller.getView().showSuccess("Car added successfully");
+            }
+
         } catch (Exception ex) {
-            JOptionPane.showMessageDialog(
-                    controller.getView(),
-                    "Error adding car: " + ex.getMessage(),
+            showError(controller, "Error adding car: " + ex.getMessage());
+        }
+    }
+
+    private void showError(CarDialogController controller, String message) {
+        if (controller.getView() instanceof CarDialogView) {
+            javax.swing.JOptionPane.showMessageDialog(
+                    (CarDialogView)controller.getView(),
+                    message,
                     "Error",
-                    JOptionPane.ERROR_MESSAGE
+                    javax.swing.JOptionPane.ERROR_MESSAGE
             );
+        } else {
+            controller.getView().showError(message);
         }
     }
 }

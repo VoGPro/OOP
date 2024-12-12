@@ -1,16 +1,14 @@
 package org.example;
 
-import javax.swing.*;
 import javax.swing.table.DefaultTableModel;
-import java.awt.event.*;
 import java.util.List;
 
 public class CarController implements IRepositoryObserver {
-    private final CarView view;
+    private final ICarView view;
     private final CarDbRepository model;
     private int currentPage = 0;
 
-    public CarController(CarView view, CarDbRepository model) {
+    public CarController(ICarView view, CarDbRepository model) {
         this.view = view;
         this.model = model;
 
@@ -22,15 +20,12 @@ public class CarController implements IRepositoryObserver {
 
     @Override
     public void onRepositoryChanged() {
-        SwingUtilities.invokeLater(() -> {
-            refreshTableData();
-            updateNavigationButtons();
-            view.refreshRowNumbers();
-        });
+        refreshTableData();
+        updateNavigationButtons();
+        view.refreshView();
     }
 
     private void initializeView() {
-        // Инициализация таблицы
         String[] columnNames = {"vin", "brand", "model"};
         DefaultTableModel tableModel = new DefaultTableModel(columnNames, 0) {
             @Override
@@ -38,62 +33,31 @@ public class CarController implements IRepositoryObserver {
                 return false;
             }
         };
-        view.getCarTable().setModel(tableModel);
-
-        tableModel.addTableModelListener(e -> view.refreshRowNumbers());
-
-        // Добавляем слушатели для просмотра деталей
-        view.getCarTable().addMouseListener(new MouseAdapter() {
-            @Override
-            public void mouseClicked(MouseEvent e) {
-                if (e.getClickCount() == 2) {
-                    showCarDetails();
-                }
-            }
-        });
-
-        view.getCarTable().addKeyListener(new KeyAdapter() {
-            @Override
-            public void keyPressed(KeyEvent e) {
-                if (e.getKeyCode() == KeyEvent.VK_ENTER) {
-                    showCarDetails();
-                }
-            }
-        });
-
+        view.setTableData(tableModel);
         refreshTableData();
         view.setVisible(true);
     }
 
     private void initializeListeners() {
-        view.getAddButton().addActionListener(e -> showAddCarDialog());
-        view.getEditButton().addActionListener(e -> showEditCarDialog());
-        view.getDeleteButton().addActionListener(e -> deleteCar());
-
-        view.getPreviousButton().addActionListener(e -> {
+        view.addActionListener("add", this::showAddCarDialog);
+        view.addActionListener("edit", this::showEditCarDialog);
+        view.addActionListener("delete", this::deleteCar);
+        view.addActionListener("previous", () -> {
             if (currentPage > 0) {
                 currentPage--;
                 refreshTableData();
                 updateNavigationButtons();
             }
         });
-
-        view.getNextButton().addActionListener(e -> {
+        view.addActionListener("next", () -> {
             if (currentPage < model.getTotalPages() - 1) {
                 currentPage++;
                 refreshTableData();
                 updateNavigationButtons();
             }
         });
-
-        view.getSortComboBox().addActionListener(e -> {
-            updateSort();
-            refreshTableData();
-            updateNavigationButtons();
-        });
-
-        view.getApplyFiltersButton().addActionListener(e -> applyMultipleFilters());
-        view.getClearFiltersButton().addActionListener(e -> clearFilters());
+        view.addActionListener("applyFilters", this::applyMultipleFilters);
+        view.addActionListener("clearFilters", this::clearFilters);
     }
 
     private void refreshTableData() {
@@ -107,8 +71,16 @@ public class CarController implements IRepositoryObserver {
     }
 
     private void updateTableData(List<Car> cars) {
-        DefaultTableModel tableModel = (DefaultTableModel) view.getCarTable().getModel();
-        tableModel.setRowCount(0);
+        DefaultTableModel tableModel = new DefaultTableModel(
+                new String[]{"vin", "brand", "model"},
+                0
+        ) {
+            @Override
+            public boolean isCellEditable(int row, int column) {
+                return false;
+            }
+        };
+
         for (Car car : cars) {
             tableModel.addRow(new Object[]{
                     car.getVin(),
@@ -116,25 +88,22 @@ public class CarController implements IRepositoryObserver {
                     car.getModel()
             });
         }
-        view.refreshRowNumbers();
+
+        view.setTableData(tableModel);
     }
 
     private void updateNavigationButtons() {
-        view.getPreviousButton().setEnabled(currentPage > 0);
-        view.getNextButton().setEnabled(currentPage < model.getTotalPages() - 1);
-        updatePageInfo();
-    }
+        boolean hasPrevious = currentPage > 0;
+        boolean hasNext = currentPage < model.getTotalPages() - 1;
 
-    private void updatePageInfo() {
-        view.getPageInfoLabel().setText(
-                String.format("Page: %d/%d", currentPage + 1, model.getTotalPages())
-        );
+        view.updateNavigationButtons(hasPrevious, hasNext);
+        view.setPageInfo(currentPage, model.getTotalPages());
     }
 
     private void showCarDetails() {
-        int selectedRow = view.getCarTable().getSelectedRow();
+        int selectedRow = view.getSelectedRow();
         if (selectedRow != -1) {
-            String vin = (String) view.getCarTable().getValueAt(selectedRow, 0);
+            String vin = view.getValueAt(selectedRow, 0);
             // Находим автомобиль по VIN
             List<Car> cars = model.get_k_n_short_list(
                     currentPage,
@@ -143,16 +112,25 @@ public class CarController implements IRepositoryObserver {
                     model.getCurrentSortField()
             );
             if (!cars.isEmpty()) {
-                CarDetailsDialog dialog = new CarDetailsDialog(view, cars.get(0));
-                dialog.setVisible(true);
+                Car selectedCar = cars.get(0);
+
+                // В зависимости от типа view показываем соответствующий диалог
+                if (view instanceof CarView) {
+                    CarDetailsDialog dialog = new CarDetailsDialog((CarView)view, selectedCar);
+                    dialog.setVisible(true);
+                } else if (view instanceof CarWebView) {
+                    CarWebDetailsDialog dialog = new CarWebDetailsDialog(
+                            ((CarWebView)view).getDocument(),
+                            selectedCar
+                    );
+                    dialog.show();
+                }
             }
         }
     }
 
     private void showAddCarDialog() {
         CarDialogController dialogController = new CarDialogController(
-                view,
-                "Add New Car",
                 model,
                 new AddCarStrategy()
         );
@@ -161,16 +139,13 @@ public class CarController implements IRepositoryObserver {
     }
 
     private void showEditCarDialog() {
-        int selectedRow = view.getCarTable().getSelectedRow();
+        int selectedRow = view.getSelectedRow();
         if (selectedRow == -1) {
-            JOptionPane.showMessageDialog(view, "Please select a car to edit");
+            view.showMessage("Please select a car to edit", "Warning", MessageType.WARNING);
             return;
         }
 
-        // Получаем VIN выбранной строки
-        String vin = (String) view.getCarTable().getValueAt(selectedRow, 0);
-
-        // Находим автомобиль по VIN
+        String vin = view.getValueAt(selectedRow, 0);
         List<Car> cars = model.get_k_n_short_list(
                 currentPage,
                 model.getPageSize(),
@@ -180,36 +155,29 @@ public class CarController implements IRepositoryObserver {
 
         if (!cars.isEmpty()) {
             Car selectedCar = cars.get(0);
-
             CarDialogController dialogController = new CarDialogController(
-                    view,
-                    "Edit Car",
                     model,
                     new EditCarStrategy(selectedCar)
             );
             dialogController.getView().setCarData(selectedCar);
             dialogController.showDialog();
         } else {
-            JOptionPane.showMessageDialog(
-                    view,
+            view.showMessage(
                     "Error: Car not found",
                     "Error",
-                    JOptionPane.ERROR_MESSAGE
+                    MessageType.ERROR
             );
         }
     }
 
     private void deleteCar() {
-        int selectedRow = view.getCarTable().getSelectedRow();
+        int selectedRow = view.getSelectedRow();
         if (selectedRow == -1) {
-            JOptionPane.showMessageDialog(view, "Please select a car to delete");
+            view.showMessage("Please select a car to delete", "Warning", MessageType.WARNING);
             return;
         }
 
-        // Получаем VIN выбранной строки
-        String vin = (String) view.getCarTable().getValueAt(selectedRow, 0);
-
-        // Находим автомобиль по VIN
+        String vin = view.getValueAt(selectedRow, 0);
         List<Car> cars = model.get_k_n_short_list(
                 currentPage,
                 model.getPageSize(),
@@ -219,51 +187,22 @@ public class CarController implements IRepositoryObserver {
 
         if (!cars.isEmpty()) {
             Car carToDelete = cars.get(0);
-
-            int confirm = JOptionPane.showConfirmDialog(
-                    view,
-                    "Are you sure you want to delete this car?",
-                    "Confirm Delete",
-                    JOptionPane.YES_NO_OPTION
-            );
-
-            if (confirm == JOptionPane.YES_OPTION) {
-                try {
-                    model.delete(carToDelete.getCarId());
-                    JOptionPane.showMessageDialog(view, "Car deleted successfully");
-                } catch (Exception ex) {
-                    JOptionPane.showMessageDialog(
-                            view,
-                            "Error deleting car: " + ex.getMessage(),
-                            "Error",
-                            JOptionPane.ERROR_MESSAGE
-                    );
-                }
+            try {
+                model.delete(carToDelete.getCarId());
+                view.showMessage("Car deleted successfully", "Success", MessageType.INFO);
+            } catch (Exception ex) {
+                view.showMessage(
+                        "Error deleting car: " + ex.getMessage(),
+                        "Error",
+                        MessageType.ERROR
+                );
             }
         } else {
-            JOptionPane.showMessageDialog(
-                    view,
+            view.showMessage(
                     "Error: Car not found",
                     "Error",
-                    JOptionPane.ERROR_MESSAGE
+                    MessageType.ERROR
             );
-        }
-    }
-
-    private void updateSort() {
-        String selectedSort = (String) view.getSortComboBox().getSelectedItem();
-        if (selectedSort != null) {
-            String sortField = switch (selectedSort.toLowerCase()) {
-                case "id" -> "car_id";
-                case "vin" -> "vin";
-                case "brand" -> "brand";
-                case "model" -> "model";
-                case "year" -> "year";
-                case "price" -> "price";
-                case "type" -> "type";
-                default -> "car_id";
-            };
-            model.setSortField(sortField);
         }
     }
 
@@ -271,17 +210,17 @@ public class CarController implements IRepositoryObserver {
         try {
             FilterBuilder filterBuilder = new FilterBuilder();
 
-            String vin = view.getVinFilterField().getText().trim();
+            String vin = view.getVinFilter();
             if (!vin.isEmpty()) {
                 filterBuilder.withVin(vin);
             }
 
-            String brand = view.getBrandFilterField().getText().trim();
+            String brand = view.getBrandFilter();
             if (!brand.isEmpty()) {
                 filterBuilder.withBrand(brand);
             }
 
-            String model = view.getModelFilterField().getText().trim();
+            String model = view.getModelFilter();
             if (!model.isEmpty()) {
                 filterBuilder.withModel(model);
             }
@@ -290,28 +229,38 @@ public class CarController implements IRepositoryObserver {
             this.model.setFilter(filterBuilder.build());
 
         } catch (NumberFormatException ex) {
-            JOptionPane.showMessageDialog(
-                    view,
+            view.showMessage(
                     "Please enter valid numeric values for year and price fields",
                     "Invalid Input",
-                    JOptionPane.ERROR_MESSAGE
+                    MessageType.ERROR
             );
         } catch (Exception ex) {
-            JOptionPane.showMessageDialog(
-                    view,
+            view.showMessage(
                     "Error applying filters: " + ex.getMessage(),
                     "Error",
-                    JOptionPane.ERROR_MESSAGE
+                    MessageType.ERROR
             );
         }
     }
 
     private void clearFilters() {
         currentPage = 0;
-        view.getVinFilterField().setText("");
-        view.getBrandFilterField().setText("");
-        view.getModelFilterField().setText("");
-
+        view.clearFilters();
         model.setFilter(new NoFilter());
+    }
+
+    public void updateSort(String sortField) {
+        String dbSortField = switch (sortField.toLowerCase()) {
+            case "id" -> "car_id";
+            case "vin" -> "vin";
+            case "brand" -> "brand";
+            case "model" -> "model";
+            case "year" -> "year";
+            case "price" -> "price";
+            case "type" -> "type";
+            default -> "car_id";
+        };
+        model.setSortField(dbSortField);
+        refreshTableData();
     }
 }
