@@ -58,6 +58,25 @@ public class CarController implements IRepositoryObserver {
         });
         view.addActionListener("applyFilters", this::applyMultipleFilters);
         view.addActionListener("clearFilters", this::clearFilters);
+
+        if (view instanceof CarView) {
+            CarView carView = (CarView) view;
+
+            // Обработчик сортировки
+            carView.getSortComboBox().addActionListener(e -> {
+                String selectedSort = (String) carView.getSortComboBox().getSelectedItem();
+                updateSort(selectedSort);
+            });
+
+            // Обработчик двойного клика по таблице
+            carView.getTable().addMouseListener(new java.awt.event.MouseAdapter() {
+                public void mouseClicked(java.awt.event.MouseEvent e) {
+                    if (e.getClickCount() == 2) {
+                        showCarDetails();
+                    }
+                }
+            });
+        }
     }
 
     private void refreshTableData() {
@@ -100,20 +119,26 @@ public class CarController implements IRepositoryObserver {
         view.setPageInfo(currentPage, model.getTotalPages());
     }
 
+    private Car findCarByVin(String vin) {
+        List<Car> cars = model.get_k_n_short_list(
+                0,
+                Integer.MAX_VALUE,  // Получаем все записи
+                new VinFilterDecorator(new NoFilter(), vin),
+                model.getCurrentSortField()
+        );
+        if (!cars.isEmpty()) {
+            return cars.get(0);
+        }
+        return null;
+    }
+
     private void showCarDetails() {
         int selectedRow = view.getSelectedRow();
         if (selectedRow != -1) {
             String vin = view.getValueAt(selectedRow, 0);
-            // Находим автомобиль по VIN
-            List<Car> cars = model.get_k_n_short_list(
-                    currentPage,
-                    model.getPageSize(),
-                    new VinFilterDecorator(new NoFilter(), vin),
-                    model.getCurrentSortField()
-            );
-            if (!cars.isEmpty()) {
-                Car selectedCar = cars.get(0);
+            Car selectedCar = findCarByVin(vin);
 
+            if (selectedCar != null) {
                 // В зависимости от типа view показываем соответствующий диалог
                 if (view instanceof CarView) {
                     CarDetailsDialog dialog = new CarDetailsDialog((CarView)view, selectedCar);
@@ -146,15 +171,9 @@ public class CarController implements IRepositoryObserver {
         }
 
         String vin = view.getValueAt(selectedRow, 0);
-        List<Car> cars = model.get_k_n_short_list(
-                currentPage,
-                model.getPageSize(),
-                new VinFilterDecorator(new NoFilter(), vin),
-                model.getCurrentSortField()
-        );
+        Car selectedCar = findCarByVin(vin);
 
-        if (!cars.isEmpty()) {
-            Car selectedCar = cars.get(0);
+        if (selectedCar != null) {
             CarDialogController dialogController = new CarDialogController(
                     model,
                     new EditCarStrategy(selectedCar)
@@ -178,15 +197,9 @@ public class CarController implements IRepositoryObserver {
         }
 
         String vin = view.getValueAt(selectedRow, 0);
-        List<Car> cars = model.get_k_n_short_list(
-                currentPage,
-                model.getPageSize(),
-                new VinFilterDecorator(new NoFilter(), vin),
-                model.getCurrentSortField()
-        );
+        Car carToDelete = findCarByVin(vin);
 
-        if (!cars.isEmpty()) {
-            Car carToDelete = cars.get(0);
+        if (carToDelete != null) {
             try {
                 model.delete(carToDelete.getCarId());
                 view.showMessage("Car deleted successfully", "Success", MessageType.INFO);

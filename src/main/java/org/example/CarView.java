@@ -273,4 +273,8 @@ public class CarView extends JFrame implements ICarView {
     public void setColumnSortable(int column, boolean sortable) {
         carTable.getTableHeader().getColumnModel().getColumn(column).setResizable(sortable);
     }
+
+    public JTable getTable() {
+        return carTable;
+    }
 }

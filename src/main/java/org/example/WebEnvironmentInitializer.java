@@ -284,6 +284,20 @@ public class WebEnvironmentInitializer {
                 font-weight: bold;
             }
             
+            .row-number-header, .row-number {
+                width: 50px;
+                min-width: 50px;
+                max-width: 50px;
+                background-color: #f4f4f4;
+                text-align: center !important;
+                font-weight: bold;
+                border-right: 2px solid #ddd !important;
+            }
+            
+            .row-number {
+                background-color: #f9f9f9;
+            }
+            
             .car-table tr:nth-child(even) {
                 background-color: #f9f9f9;
             }
@@ -291,6 +305,14 @@ public class WebEnvironmentInitializer {
             .car-table tr:hover {
                 background-color: #f5f5f5;
                 cursor: pointer;
+            }
+            
+            #clearFiltersBtn { margin-left: 10px; }
+            
+            .car-table td button + button { margin-left: 10px; }
+            
+            .car-table tr:hover .row-number {
+                background-color: #f4f4f4;
             }
             
             .navigation-section {
@@ -339,7 +361,7 @@ public class WebEnvironmentInitializer {
             
             .modal-content {
                 background-color: #fefefe;
-                margin: 15% auto;
+                margin: 5% auto;
                 padding: 20px;
                 border: 1px solid #888;
                 width: 80%;
@@ -426,8 +448,18 @@ public class WebEnvironmentInitializer {
     private void setupEventListeners() {
         Element scriptElement = document.createElement("script");
         scriptElement.setTextContent("""
+            function resetCarForm() {
+                const form = document.getElementById('carForm');
+                form.reset();
+                form.dataset.mode = 'add';
+                delete form.dataset.carId;
+                document.getElementById('dialogTitle').textContent = 'Add New Car';
+                clearValidationErrors();
+            }
+                    
             // Глобальные функции для работы с диалогами
             function openCarDialog() {
+                resetCarForm();
                 document.getElementById('carDialog').style.display = 'block';
             }
             
@@ -501,25 +533,51 @@ public class WebEnvironmentInitializer {
                 
                 // Создаем заголовок
                 const header = document.createElement('tr');
-                ['VIN', 'Brand', 'Model', 'Actions'].forEach(text => {
+                ['№', 'VIN', 'Brand', 'Model', 'Actions'].forEach(text => {
                     const th = document.createElement('th');
                     th.textContent = text;
+                    if (text === '№') {
+                        th.className = 'row-number-header';
+                    }
                     header.appendChild(th);
                 });
                 table.appendChild(header);
                 
                 // Добавляем данные
-                cars.forEach(car => {
+                cars.forEach((car, index) => {
                     const row = document.createElement('tr');
-                    row.innerHTML = `
-                        <td>${car.vin}</td>
-                        <td>${car.brand}</td>
-                        <td>${car.model}</td>
-                        <td>
-                            <button onclick="editCar(${car.carId})">Edit</button>
-                            <button onclick="deleteCar(${car.carId})" style="background-color: #f44336;">Delete</button>
-                        </td>
-                    `;
+                    
+                    const numberCell = document.createElement('td');
+                    numberCell.textContent = (index + 1).toString();
+                    numberCell.className = 'row-number';
+                    row.appendChild(numberCell);
+                    
+                    const vinCell = document.createElement('td');
+                    vinCell.textContent = car.vin;
+                    row.appendChild(vinCell);
+                    
+                    const brandCell = document.createElement('td');
+                    brandCell.textContent = car.brand;
+                    row.appendChild(brandCell);
+                    
+                    const modelCell = document.createElement('td');
+                    modelCell.textContent = car.model;
+                    row.appendChild(modelCell);
+                    
+                    const actionsCell = document.createElement('td');
+                    
+                    const editButton = document.createElement('button');
+                    editButton.textContent = 'Edit';
+                    editButton.onclick = () => editCar(car.carId);
+                    
+                    const deleteButton = document.createElement('button');
+                    deleteButton.textContent = 'Delete';
+                    deleteButton.style.backgroundColor = '#f44336';
+                    deleteButton.onclick = () => deleteCar(car.carId);
+                    
+                    actionsCell.appendChild(editButton);
+                    actionsCell.appendChild(deleteButton);
+                    row.appendChild(actionsCell);
                     
                     // Добавляем обработчик двойного клика для показа деталей
                     row.addEventListener('dblclick', () => showCarDetails(car.carId));
@@ -607,7 +665,8 @@ public class WebEnvironmentInitializer {
                 
                 // Добавление нового автомобиля
                 document.getElementById('addBtn').onclick = () => {
-                    openCarDialog();
+                    resetCarForm();
+                    document.getElementById('carDialog').style.display = 'block';
                 };
                 
                 // Обработка формы
@@ -723,6 +782,7 @@ public class WebEnvironmentInitializer {
                     const car = await response.json();
                     
                     if (response.ok) {
+                        clearValidationErrors();
                         document.getElementById('vin').value = car.vin;
                         document.getElementById('brand').value = car.brand;
                         document.getElementById('model').value = car.model;
@@ -735,7 +795,7 @@ public class WebEnvironmentInitializer {
                         form.dataset.carId = car.carId;
                         
                         document.getElementById('dialogTitle').textContent = 'Edit Car';
-                        openCarDialog();
+                        document.getElementById('carDialog').style.display = 'block';
                     } else {
                         showError(data.message);
                     }
